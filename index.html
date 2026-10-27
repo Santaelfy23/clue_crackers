@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Clue Crackers: detective-themed practice for 11+ critical thinking: seating puzzles, must-be-true logic and argument questions.">
+<meta name="description" content="Clue Crackers: detective-themed practice for 11+ critical thinking.">
 <title>Clue Crackers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -153,6 +153,28 @@ table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
 .stars{font-family:var(--font-display);font-size:1.3rem;color:var(--manila)}
 .grownups{color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px;display:grid;gap:6px}
 @media (prefers-reduced-motion:no-preference){.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-6deg) scale(1.6);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}}
+.folder h2{padding-right:96px}
+.mystery{display:grid;gap:16px;padding-top:8px}
+.lvls{display:flex;gap:4px}
+.lv{font-size:.72rem;border:1px solid var(--line);border-radius:99px;padding:0 7px;color:var(--muted)}
+.lv.open{border-color:var(--ok);color:var(--ok)}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.lvbtn{text-align:left;background:var(--raised);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.lvbtn b{font-family:var(--font-display);font-weight:400;color:var(--manila)}
+.lvbtn small{color:var(--muted)}
+.lvbtn.on{border-color:var(--btn);box-shadow:0 0 0 2px color-mix(in srgb,var(--btn) 40%,transparent)}
+.lvbtn:disabled{opacity:.55;cursor:default}
+.unlocked{font-weight:700;color:var(--ok)}
+table.lgrid{border-collapse:collapse;margin:0 auto}
+table.lgrid th,table.lgrid td{border:1px solid var(--line);padding:0;text-align:center}
+table.lgrid th{font-weight:400;color:var(--muted);font-size:.78rem;padding:4px 6px}
+table.lgrid th.grp{color:var(--manila);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+table.lgrid th.rh{text-align:left;color:var(--fg);font-weight:700;white-space:nowrap}
+table.lgrid th.ch{vertical-align:bottom;max-width:64px}
+table.lgrid th.ch span{display:block;line-height:1.15}
+.cell{width:100%;min-width:32px;height:36px;border:0;background:var(--raised);font-weight:700;font-size:1rem}
+.cell.v1{color:var(--stamp)} .cell.v2{color:var(--ok)}
+td.cnt{font-weight:700;color:var(--manila);min-width:38px}
 </style>
 </head>
 <body>
@@ -391,269 +413,22 @@ const CASES = [
 }
 ];
 
-CASES[2].puzzles.push(CASES[2].extra.shift()); // 6 puzzles in every case
-const KEY="greta-case-files-v1";
-const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
-let mode=ls.get(KEY+"-mode")||"dark";
-function applyMode(){document.documentElement.classList.toggle("light",mode==="light")}
-applyMode();
-let playerName=ls.get(KEY+"-name")||"";
-function saveRun(){
-  if(state.view==="puzzle") ls.set(KEY+"-run",JSON.stringify({ci:state.ci,pi:state.pi,results:state.results,pts:state.pts,streak:state.streak,fresh:state.fresh,round:state.round,solved:state.solved||state.tries>=2}));
-}
-function loadRun(){try{return JSON.parse(ls.get(KEY+"-run")||"null")}catch(e){return null}}
-function clearRun(){ls.del(KEY+"-run")}
-let progress={};
-try{progress=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){progress={}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(progress))}catch(e){}}
-
-const app=document.getElementById("app");
-let state={view:"home"};
-const L="ABCD";
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const SUSPECTS=[
-  {name:"Mr Crumble",role:"the caretaker",face:"🧹",back:true,glasses:true,left:true,alibi:"Mr Crumble wears glasses — so he signed the visitors' book. Evidence 2 rules him out."},
-  {name:"Ms Fizz",role:"the science teacher",face:"🧪",back:true,glasses:false,left:false,alibi:"Ms Fizz is right-handed. Evidence 3 rules her out."},
-  {name:"Dr Quaver",role:"the conductor",face:"🎼",back:false,glasses:false,left:true,alibi:"Dr Quaver was at the front, conducting. Evidence 1 rules him out."},
-  {name:"Pippa Prowl",role:"the piano tuner",face:"🎹",back:true,glasses:false,left:true,alibi:null}
-];
-const THIEF=3;
-const RANKS=[[0,"Rookie"],[12,"Detective Constable"],[25,"Detective Sergeant"],[38,"Detective Inspector"]];
-const PRAISE=["Elementary!","Sharp eyes!","Case cracked!","Brilliant deduction!","The clues never lie!","Super sleuthing!"];
-function totalPoints(){return CASES.reduce((t,c)=>t+((progress[c.id]&&progress[c.id].points)||0),0)}
-function maxPoints(){return CASES.reduce((t,c)=>t+c.puzzles.length*3,0)}
-function rank(){if(progress.caught) return "Chief Inspector";let r=RANKS[0][1];for(const [n,t] of RANKS) if(totalPoints()>=n) r=t;return r}
-function allSolved(){return CASES.every(c=>progress[c.id])}
-let soundOn=false, actx=null;
-try{soundOn=localStorage.getItem(KEY+"-sound")==="1"}catch(e){}
-function chime(good){
-  if(!soundOn) return;
-  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    const notes=good?[523,659,784]:[330,262];
-    notes.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type="triangle";o.frequency.value=f;
-      g.gain.setValueAtTime(0.0001,actx.currentTime+i*0.11);g.gain.exponentialRampToValueAtTime(0.18,actx.currentTime+i*0.11+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+i*0.11+0.3);o.connect(g).connect(actx.destination);o.start(actx.currentTime+i*0.11);o.stop(actx.currentTime+i*0.11+0.32)});
-  }catch(e){}
-}
-function confetti(){
-  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const cv=document.createElement("canvas");cv.className="confetti";document.body.appendChild(cv);
-  const W=cv.width=innerWidth,H=cv.height=innerHeight,ctx=cv.getContext("2d");
-  const cols=["#dcb76c","#72c9a0","#e2625a","#8fb4ff","#ece7da"];
-  const ps=Array.from({length:90},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*9-3,r:Math.random()*6+3,c:cols[Math.floor(Math.random()*cols.length)],a:Math.random()*6}));
-  let t=0;(function f(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.28;p.a+=.15;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);ctx.restore()});
-    if(++t<110) requestAnimationFrame(f); else cv.remove()})();
-}
-
-function render(stay){
-  const y=window.scrollY;
-  setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
-  if(state.view==="home") return home();
-  if(state.view==="brief") return brief();
-  if(state.view==="puzzle") return puzzle();
-  if(state.view==="end") return endView();
-  if(state.view==="accuse") return accuse();
-}
-
-function home(){
-  const tp=totalPoints(); const run=loadRun();
-  app.innerHTML=`
-  <header class="top"><div><p class="label">Critical thinking detective school</p><h1>Clue Crackers</h1></div>
-    <div class="badge"><span class="label">Your rank</span><b>${rank()}${playerName?" "+esc(playerName):""}</b><span>🔍 ${tp} / ${maxPoints()} magnifiers</span>
-    <div class="toolbar"><button class="btn ghost mini" id="mode">${mode==="light"?"🌙 Dark mode":"☀️ Light mode"}</button>
-    <button class="btn ghost mini" id="snd">${soundOn?"🔊 Sound on":"🔈 Sound off"}</button></div></div></header>
-  ${playerName?"":`<section class="card"><p class="label">New recruit</p><h3>What's your detective name?</h3>
-    <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
-  ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
-    <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
-  <section class="card story"><p class="label">Breaking news</p>
-    <h2>The Case of the Vanishing Golden Bow</h2>
-    <p>Disaster at the school concert! The Golden Bow trophy has vanished from the music room. Solve each case file to unlock a piece of evidence. When you have all three, name the thief.</p>
-    <div class="evid">${CASES.map((c,i)=>progress[c.id]
-      ?`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(c.evidence)}</p></div>`
-      :`<div class="ev-card"><span class="label">Evidence ${i+1}</span><p>🔒 Solve ${c.tab} to unlock</p></div>`).join("")}</div>
-    <div class="row">${allSolved()
-      ?`<button class="btn" id="acc">${progress.caught?"🏆 Case solved — see the thief again":"🕵️ Name the thief!"}</button>`
-      :`<span class="hint">${CASES.filter(c=>progress[c.id]).length} of 3 pieces of evidence found</span>`}</div>
-  </section>
-  <div class="folders">${CASES.map((c,i)=>{
-    const p=progress[c.id];
-    return `<button class="folder" data-tab="${c.tab}" data-i="${i}">
-      ${p?`<span class="stamp">SOLVED</span>`:""}
-      <h2>${esc(c.title)}</h2><p>${esc(c.blurb)}</p>
-      <div class="meta"><span>${c.puzzles.length} puzzles · up to ${c.puzzles.length*3} 🔍</span><span>${p?`Best: ${p.points||0} 🔍 · ${p.best}/${c.puzzles.length} first try`:"Not started"}</span></div>
-    </button>`}).join("")}</div>
-  <div class="grownups"><p class="label">For grown-ups</p>
-  <p>Three common 11+ critical-thinking question types: seating and ordering puzzles, “must be true” logic, and strengthen/weaken arguments. Do one case per session. Scoring: 3 🔍 for right first time with no clue, 2 with a clue, 1 on the second try. Praise the method (drawing it, trying a second arrangement) even when the final answer slips.</p>
-  <p>Progress saves automatically in this browser, including a case that's halfway through. To move it to another device or browser, copy the backup code and paste it there.</p>
-  <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
-    <textarea id="bcode" hidden aria-label="Backup code"></textarea>
-    <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
-  app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{state={view:"brief",ci:+b.dataset.i};render()});
-  const a=document.getElementById("acc"); if(a) a.onclick=()=>{state={view:"accuse",wrong:[]};render()};
-  document.getElementById("mode").onclick=()=>{mode=mode==="light"?"dark":"light";ls.set(KEY+"-mode",mode);applyMode();render(true)};
-  const nf=document.getElementById("nameform"); if(nf) nf.onsubmit=e=>{e.preventDefault();const v=document.getElementById("pname").value.trim();if(v){playerName=v;ls.set(KEY+"-name",v);render(true)}};
-  const rn=document.getElementById("rename"); if(rn) rn.onclick=()=>{playerName="";ls.del(KEY+"-name");render()};
-  const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{state=Object.assign({view:"puzzle"},run);newPuzzle();if(run.solved&&run.pi<run.round.length-1){state.pi++;}render()};
-  const dr=document.getElementById("drop"); if(dr) dr.onclick=()=>{clearRun();render(true)};
-  const bcode=document.getElementById("bcode"), bmsg=document.getElementById("bmsg");
-  const code=()=>btoa(unescape(encodeURIComponent(JSON.stringify({progress,name:playerName,run:loadRun()}))));
-  document.getElementById("copyb").onclick=()=>{const c=code();bcode.hidden=false;bcode.value=c;document.getElementById("rrow").hidden=true;
-    navigator.clipboard&&navigator.clipboard.writeText(c).then(()=>{bcode.insertAdjacentHTML("afterend","")},()=>{bcode.select()})||bcode.select()};
-  document.getElementById("showr").onclick=()=>{bcode.hidden=false;bcode.value="";bcode.placeholder="Paste a backup code here";document.getElementById("rrow").hidden=false;bcode.focus()};
-  document.getElementById("dorestore").onclick=()=>{try{const d=JSON.parse(decodeURIComponent(escape(atob(bcode.value.trim()))));
-      if(!d||typeof d.progress!=="object") throw 0; progress=d.progress; save(); if(d.name){playerName=d.name;ls.set(KEY+"-name",d.name)} if(d.run) ls.set(KEY+"-run",JSON.stringify(d.run)); else clearRun(); render();
-    }catch(e){bmsg.textContent="That code didn't work. Check you copied all of it."}};
-  document.getElementById("snd").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem(KEY+"-sound",soundOn?"1":"0")}catch(e){};chime(true);render(true)};
-}
-
-function brief(){
-  const c=CASES[state.ci];
-  app.innerHTML=`
-  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
-  <section class="card"><p class="label">${c.tab} · Briefing</p><h2>${esc(c.title)}</h2>
-    <p class="label">The detective's rule — say it out loud</p>
-    <div class="rule">${esc(c.rule)}</div>
-    <h3>How a good detective does it</h3>
-    <ol class="steps">${c.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
-    <p class="from-test">${esc(c.fromTest)}</p>
-    <div class="row">${progress[c.id]?`<button class="btn" id="fresh">🎲 New puzzles</button><button class="btn ghost" id="go">Replay the originals</button>`:`<button class="btn" id="go">Open the case</button>`}</div>
-    ${progress[c.id]?`<p class="hint">${c.id==="seats"?"New puzzles are made up fresh every time — there's no end to them!":"New puzzles are a mix from a bigger puzzle bank."}</p>`:""}
-  </section>`;
-  back();
-  document.getElementById("go").onclick=()=>startCase(state.ci,false);
-  const fr=document.getElementById("fresh"); if(fr) fr.onclick=()=>startCase(state.ci,true);
-}
-
-function startCase(ci,fresh){state={view:"puzzle",ci,pi:0,results:[],pts:0,streak:0,fresh:!!fresh,round:buildRound(CASES[ci],fresh)};newPuzzle();render()}
-function newPuzzle(){Object.assign(state,{tries:0,shown:0,picked:[],solved:false,boards:null,marks:null})}
-
-function puzzle(){
-  saveRun();
-  const c=CASES[state.ci], R=state.round, p=R[state.pi];
-  const dots=R.map((_,i)=>{
-    const r=state.results[i];
-    return `<span class="dot ${r===true?"done":r===false?"miss":""} ${i===state.pi?"now":""}"></span>`}).join("");
-  const last=state.picked[state.picked.length-1];
-  let fb="";
-  if(state.solved){
-    const first=state.tries===1;
-    fb=`<div class="fb good"><div class="row" style="justify-content:space-between"><strong class="pop-in">${state.praise}</strong><span class="gain">+${state.gain} 🔍</span></div>${state.streak>=2?`<p class="streak">🔥 ${state.streak} in a row!</p>`:""}<p>${esc(p.explain)}</p>${npIndex(p)>=0?`<p class="recap">🚨 <b>Trap alert reminder:</b> when “not possible to tell” is an option, don't stop at your first arrangement. <b>List</b> every place the most restricted person (or pair) could go, <b>place</b> everyone else, then <b>tick ✅ or cross ❌</b> each one. One ✅ = that's your answer. Two ✅ that give different answers = not possible to tell.</p>`:""}</div>
-        <div class="row"><button class="btn" id="next">${state.pi<R.length-1?"Next puzzle →":"Close the case →"}</button></div>`;
-  } else if(state.tries===1){
-    fb=`<div class="fb bad"><strong>Not quite — check this</strong><p>${esc(p.why[last]||"")}</p><p>Look at a clue below, then try again.</p></div>`;
-  } else if(state.tries>=2){
-    fb=`<div class="fb bad"><strong>The answer is ${L[p.a]}</strong><p>${esc(p.why[last]||"")}</p><p>${esc(p.explain)}</p>${npIndex(p)>=0?`<p class="recap">🚨 <b>Trap alert reminder:</b> when “not possible to tell” is an option, don't stop at your first arrangement. <b>List</b> every place the most restricted person (or pair) could go, <b>place</b> everyone else, then <b>tick ✅ or cross ❌</b> each one. One ✅ = that's your answer. Two ✅ that give different answers = not possible to tell.</p>`:""}</div>
-        <div class="row"><button class="btn" id="next">${state.pi<R.length-1?"Next puzzle →":"Close the case →"}</button></div>`;
-  }
-  const locked=state.solved||state.tries>=2;
-  app.innerHTML=`
-  <div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← All cases</button><div class="row" style="gap:14px"><span class="pts">🔍 ${state.pts}</span><div class="dots">${dots}</div></div></div>
-  <section class="card">
-    <p class="label">${c.tab} · Puzzle ${state.pi+1} of ${R.length}${state.fresh?" · 🎲 new puzzles":""}</p>
-    <div class="rule" style="font-size:1rem">${esc(c.rule)}</div>
-    <div class="q">${p.q}</div>
-    ${p.opts.some(o=>/not possible to tell/i.test(o))&&!state.solved?`<div class="alert" role="note"><span class="t">🚨 Trap alert: “not possible to tell”</span><p>Found one arrangement? Don't stop yet!</p><ol><li><b>List</b> every place the most restricted person (or pair) could go.</li><li><b>Place</b> everyone else and check every clue.</li><li><b>Tick ✅ or cross ❌</b> each arrangement.</li></ol><p>One ✅ = that's your answer. Two ✅ that give different answers = <b>not possible to tell</b>.</p></div>`:""}
-    ${p.board?boardHTML(p.board):""}
-    <div class="opts">${p.opts.map((o,i)=>{
-      const cls=(locked&&i===p.a)?"right":state.picked.includes(i)?"wrong":"";
-      return `<button class="opt ${cls}" data-i="${i}" ${locked||state.picked.includes(i)?"disabled":""}><b>${L[i]}</b><span>${esc(o)}</span></button>`}).join("")}</div>
-    ${fb}
-    <div class="clues">${p.clues.slice(0,state.shown).map((t,i)=>`<div class="clue"><span class="label">Clue ${i+1}</span><br>${esc(t)}</div>`).join("")}</div>
-    ${state.shown<p.clues.length&&!locked?`<div class="row"><button class="btn ghost" id="clue">Need a clue? (${p.clues.length-state.shown} left)</button></div>`:""}
-  </section>`;
-  back();
-  app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
-  const cl=document.getElementById("clue"); if(cl) cl.onclick=()=>{state.shown++;render(true)};
-  const nx=document.getElementById("next"); if(nx) nx.onclick=next;
-  if(p.board) wireBoard(p.board);
-}
-
-function choose(i){
-  const p=state.round[state.pi];
-  state.tries++; state.picked.push(i);
-  if(i===p.a){
-    state.solved=true;
-    state.gain=state.tries===1?(state.shown===0?3:2):1; state.pts+=state.gain;
-    state.streak=state.tries===1?state.streak+1:0;
-    state.praise=PRAISE[Math.floor(Math.random()*PRAISE.length)];
-    confetti(); chime(true);
-  } else {
-    if(state.tries>=2) state.streak=0;
-    if(state.tries===1 && state.shown===0) state.shown=1;
-    chime(false);
-  }
-  if(state.results[state.pi]===undefined && (state.solved||state.tries>=2)) state.results[state.pi]=(state.solved&&state.tries===1);
-  render(true);
-}
-
-function next(){
-  const c=CASES[state.ci];
-  if(state.pi<state.round.length-1){state.pi++;newPuzzle();render()}
-  else{
-    const score=state.results.filter(Boolean).length;
-    const prev=progress[c.id];
-    state.firstSolve=!prev; progress[c.id]={best:Math.max(score,prev?prev.best:0),points:Math.max(state.pts,prev&&prev.points?prev.points:0)}; save(); confetti(); chime(true);
-    clearRun(); state.view="end"; state.score=score; render();
-  }
-}
-
-function endView(){
-  const c=CASES[state.ci], n=state.round.length, s=state.score;
-  const msg=s===n?"Perfect detective work!":s>=n-2?"Great work, detective.":"Good effort — every case gets easier the second time.";
-  app.innerHTML=`
-  <section class="card end">
-    <p class="label">${c.tab}</p><h2>${esc(c.title)}</h2>
-    <span class="stamp pop">CASE CLOSED</span>
-    <p class="stars">🔍 ${state.pts} magnifiers · ${s} / ${n} first try</p>
-    <p>Rank: <b>${rank()}</b></p>
-    <div class="ev-card open unlock"><span class="label">${state.firstSolve?"New evidence unlocked!":"Evidence"} · Evidence ${state.ci+1}</span><p>${esc(c.evidence)}</p></div>
-    ${allSolved()&&!progress.caught?`<button class="btn" id="acc2">🕵️ You have all the evidence — name the thief!</button>`:""}
-    <p>${msg}</p>
-    <p class="label">Remember the rule</p><div class="rule">${esc(c.rule)}</div>
-    <p class="from-test">Show a grown-up this screen.</p>
-    <div class="row" style="justify-content:center"><button class="btn" id="home">Back to the case files</button><button class="btn ghost" id="again">🎲 Play again with new puzzles</button></div>
-  </section>`;
-  document.getElementById("home").onclick=()=>{state={view:"home"};render()};
-  const a2=document.getElementById("acc2"); if(a2) a2.onclick=()=>{state={view:"accuse",wrong:[]};render()};
-  document.getElementById("again").onclick=()=>startCase(state.ci,true);
-}
-
-function accuse(){
-  const done=progress.caught&&state.wrong!==null;
-  const caughtNow=state.caught||progress.caught;
-  app.innerHTML=`
-  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
-  <section class="card"><p class="label">Final case</p><h2>Who stole the Golden Bow?</h2>
-    <p>Use all three pieces of evidence to rule suspects out. Only one person fits every clue.</p>
-    <div class="evid">${CASES.map((c,i)=>`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(c.evidence)}</p></div>`).join("")}</div>
-    <div class="suspects">${SUSPECTS.map((p,i)=>{
-      const out=state.wrong.includes(i), win=caughtNow&&i===THIEF;
-      return `<button class="suspect ${out?"out":""} ${win?"win":""}" data-i="${i}" ${out||caughtNow?"disabled":""}>
-        <span class="face">${p.face}</span><b>${p.name}</b><small>${p.role}</small>
-        <span class="chips"><span class="chip">${p.back?"Back row":"Front row"}</span><span class="chip">${p.glasses?"Glasses":"No glasses"}</span><span class="chip">${p.left?"Left-handed":"Right-handed"}</span></span>
-        ${out?`<span class="stamp">ALIBI</span>`:""}${win?`<span class="stamp">GUILTY</span>`:""}
-      </button>`}).join("")}</div>
-    ${state.msg?`<div class="fb bad"><strong>Not them!</strong><p>${esc(state.msg)}</p></div>`:""}
-    ${caughtNow?`<div class="fb good"><strong>Case closed, Chief Inspector!</strong><p>Pippa Prowl sat in the back row, doesn't wear glasses (so she didn't sign the book), and is left-handed. The Golden Bow is back in time for the concert! 🎻</p></div>`:""}
-  </section>`;
-  back();
-  app.querySelectorAll(".suspect").forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.i;
-    if(i===THIEF){state.caught=true;state.msg="";progress.caught=true;save();confetti();setTimeout(confetti,400);chime(true)}
-    else{state.wrong.push(i);state.msg=SUSPECTS[i].alibi;chime(false)}
-    render(true)});
-}
-
-function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
-
-/* ---------- seating puzzle generator (checked by a solver) ---------- */
+/* ---------- puzzle generators (every answer is checked by a solver) ---------- */
 const NAME_POOL=["Ava","Ben","Cleo","Dev","Eli","Fay","Gus","Isla","Jack","Kai","Lily","Max","Nora","Omar","Pia","Rex","Sana","Theo","Una","Zac"];
 function rnd(n){return Math.floor(Math.random()*n)}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function perms(arr){if(arr.length<=1)return [arr];const out=[];arr.forEach((x,i)=>{perms(arr.slice(0,i).concat(arr.slice(i+1))).forEach(p=>out.push([x].concat(p)))});return out}
-/* arrangement = array of person indexes by seat. Row: seat 0 is the left end, everyone faces the same way as you.
-   Circle: seat 0 is the bottom, seat i+1 is on the LEFT of seat i (matches the scratch board). */
+function listNames(ns){return ns.length<2?ns.join(""):ns.slice(0,-1).join(", ")+" and "+ns[ns.length-1]}
+const ORD=["1st","2nd","3rd","4th","5th","6th"];
+const NP="It is not possible to tell";
+/* drop clues one at a time while the puzzle still has the same answers */
+function trimClues(clues,all,sameAs){
+  let cs=clues.slice();
+  for(let i=cs.length-1;i>=0;i--){const t=cs.filter((_,j)=>j!==i);const v=all.filter(a=>t.every(c=>c.f(a)));if(sameAs(v))cs=t}
+  return cs;
+}
+
+/* ===== seating (rows and round tables) ===== */
 function makeGeom(type,n){
   const pos=(arr,x)=>arr.indexOf(x);
   if(type==="row") return {
@@ -661,26 +436,26 @@ function makeGeom(type,n){
     right:(arr,x)=>{const k=pos(arr,x);return k<n-1?arr[k+1]:-1},
     next:(arr,x,y)=>Math.abs(pos(arr,x)-pos(arr,y))===1,
     end:(arr,x)=>{const k=pos(arr,x);return k===0||k===n-1},
-    seat:(arr,x)=>pos(arr,x)
-  };
+    seat:(arr,x)=>pos(arr,x)};
   return {
     left:(arr,x)=>arr[(pos(arr,x)+1)%n],
     right:(arr,x)=>arr[(pos(arr,x)-1+n)%n],
     next:(arr,x,y)=>{const d=Math.abs(pos(arr,x)-pos(arr,y));return d===1||d===n-1},
-    opp:(arr,x)=>n%2===0?arr[(pos(arr,x)+n/2)%n]:-1
-  };
+    opp:(arr,x)=>n%2===0?arr[(pos(arr,x)+n/2)%n]:-1};
 }
-function genSeating(){
-  for(let attempt=0;attempt<4000;attempt++){
-    const type=Math.random()<0.55?"row":"circle";
-    const n=type==="row"?(Math.random()<0.6?4:5):(Math.random()<0.5?4:5);
+function genSeating(level){
+  level=level||1;
+  for(let attempt=0;attempt<3000;attempt++){
+    let type,n,nClues;
+    if(level===1){type=Math.random()<0.7?"row":"circle";n=4;nClues=2+rnd(2)}
+    else if(level===2){type=Math.random()<0.5?"row":"circle";n=5;nClues=3+rnd(2)}
+    else {type=Math.random()<0.45?"row":"circle";n=type==="row"?5+rnd(2):(Math.random()<0.6?6:5);nClues=4+rnd(2)}
     const names=shuffle(NAME_POOL).slice(0,n).sort();
     const G=makeGeom(type,n);
     let all=perms([...Array(n).keys()]);
-    if(type==="circle") all=all.filter(a=>a[0]===0);   // turning the table round doesn't change anything
+    if(type==="circle") all=all.filter(a=>a[0]===0);
     const pick=()=>{const x=rnd(n);let y=rnd(n);while(y===x)y=rnd(n);return [x,y]};
-    const kinds=type==="row"?["end","notEnd","next","notNext","leftOf","seat"]:["next","notNext","leftOf","rightOf"].concat(n%2===0?["opp","notOpp"]:[]);
-    const nClues=2+rnd(type==="row"&&n===5?3:2);
+    const kinds=type==="row"?["end","notEnd","next","notNext","leftOf","seat"].concat(level>1?["notNext","notEnd"]:[]):["next","notNext","leftOf","rightOf"].concat(n%2===0?["opp","notOpp"]:[]);
     const clues=[];
     for(let k=0;k<nClues;k++){
       const kind=kinds[rnd(kinds.length)], [x,y]=pick(), X=names[x], Y=names[y];
@@ -694,129 +469,794 @@ function genSeating(){
       if(kind==="rightOf"){t=`${X} sits next to ${Y}, on ${Y}'s right.`;f=a=>G.right(a,y)===x}
       if(kind==="opp"){t=`${X} sits opposite ${Y}.`;f=a=>G.opp(a,x)===y}
       if(kind==="notOpp"){t=`${X} does not sit opposite ${Y}.`;f=a=>G.opp(a,x)!==y}
-      if(clues.some(c=>c.t===t)) {k--;continue}
+      if(clues.some(c=>c.t===t)){k--;continue}
       clues.push({t,f});
     }
     const valid=all.filter(a=>clues.every(c=>c.f(a)));
     if(valid.length<1||valid.length>3) continue;
-    // drop puzzles with a clue that does nothing
     if(clues.some((c,i)=>all.filter(a=>clues.every((d,j)=>j===i||d.f(a))).length===valid.length)) continue;
-    // question
     const z=rnd(n), Z=names[z];
     const qs=type==="row"?["left","right","seatQ"]:["left","right"].concat(n%2===0?["opp"]:[]);
     const qk=qs[rnd(qs.length)];
-    let ask,ansOf;
+    let ask,ansOf,seatNo=0;
     if(qk==="left"){ask=`Who is sitting on ${Z}'s left?`;ansOf=a=>G.left(a,z)}
     if(qk==="right"){ask=`Who is sitting on ${Z}'s right?`;ansOf=a=>G.right(a,z)}
     if(qk==="opp"){ask=`Who is sitting opposite ${Z}?`;ansOf=a=>G.opp(a,z)}
-    let seatNo=0;
     if(qk==="seatQ"){seatNo=rnd(n);ask=`Who is in seat ${seatNo+1}?`;ansOf=a=>a[seatNo]}
     const answers=valid.map(ansOf);
-    if(answers.some(v=>v<0)) continue;                 // someone at the end has no neighbour on that side
+    if(answers.some(v=>v<0)) continue;
     const uniq=[...new Set(answers)];
     const wantNP=Math.random()<0.4;
     if(wantNP!==(uniq.length>1)) continue;
     if(qk==="seatQ"&&clues.some(c=>c.t.endsWith(`seat ${seatNo+1}.`))) continue;
-    // options: 3 names + not possible
     let pool=uniq.slice(0,3);
     const others=shuffle([...Array(n).keys()].filter(i=>!pool.includes(i)&&(qk==="seatQ"||i!==z)));
     while(pool.length<3&&others.length) pool.push(others.shift());
     if(pool.length<3) continue;
     pool=shuffle(pool);
-    const opts=pool.map(i=>names[i]).concat(["It is not possible to tell"]);
+    const opts=pool.map(i=>names[i]).concat([NP]);
     const a=uniq.length>1?3:pool.indexOf(uniq[0]);
     const desc=arr=>type==="row"?arr.map(i=>names[i]).join(", "):`${names[arr[0]]} at the bottom, then going round to the left: `+arr.map(i=>names[i]).join(" → ");
     const list=valid.map((v,i)=>`(${i+1}) ${desc(v)}`).join("   ");
     const why=opts.map((o,i)=>{
       if(i===a) return null;
       if(i===3) return "Only one arrangement fits every clue, so we CAN tell.";
-      const who=pool[i];
-      return answers.includes(who)?`${o} is right in one arrangement, but not in every one. Look for another arrangement.`:`${o} isn't the answer in any arrangement that fits all the clues.`;
+      return answers.includes(pool[i])?`${o} is right in one arrangement, but not in every one. Look for another arrangement.`:`${o} isn't the answer in any arrangement that fits all the clues.`;
     });
     const setting=type==="row"
-      ?`<p>${names.join(", ").replace(/, ([^,]*)$/," and $1")} sit side by side in a row of ${n} seats, numbered 1 to ${n} from left to right. They all face the same way as you, so their left is your left.</p>`
-      :`<p>${names.join(", ").replace(/, ([^,]*)$/," and $1")} sit equally spaced around a round table, all facing the middle.</p>`;
-    return {
-      gen:true,
-      board:{type,names},
+      ?`<p>${listNames(names)} sit side by side in a row of ${n} seats, numbered 1 to ${n} from left to right. They all face the same way as you, so their left is your left.</p>`
+      :`<p>${listNames(names)} sit equally spaced around a round table, all facing the middle.</p>`;
+    return {gen:true,board:{type,names},
       q:`${setting}<ul>${clues.map(c=>`<li>${c.t}</li>`).join("")}</ul><p class="ask">${ask}</p>`,
       opts,a,why,
       clues:["Draw the seats on the scratch board. Put the most definite clue in first.",
-             type==="circle"?"Put one person at the bottom of the circle. For them, left is your left. Then try every place for the next person.":"Try every place the most restricted person (or pair) could go. Tick ✅ or cross ❌ each arrangement.",
-             valid.length===1?"Only ONE arrangement fits every clue. Find it, then answer.":`${valid.length} arrangements fit every clue. Find them all, then check: do they give the same answer?`],
-      explain:(valid.length===1?"Only one arrangement fits every clue: ":`${valid.length} arrangements fit every clue: `)+list+(uniq.length>1?". They give different answers, so it is not possible to tell.":valid.length>1?`. They all give the same answer: ${names[uniq[0]]}.`:`. So the answer is ${names[uniq[0]]}.`)
-    };
+        type==="circle"?"Put one person at the bottom of the circle. For them, left is your left. Then try every place for the next person.":"Try every place the most restricted person (or pair) could go. Tick ✅ or cross ❌ each arrangement.",
+        valid.length===1?"Only ONE arrangement fits every clue. Find it, then answer.":`${valid.length} arrangements fit every clue. Find them all, then check: do they give the same answer?`],
+      explain:(valid.length===1?"Only one arrangement fits every clue: ":`${valid.length} arrangements fit every clue: `)+list+(uniq.length>1?". They give different answers, so it is not possible to tell.":valid.length>1?`. They all give the same answer: ${names[uniq[0]]}.`:`. So the answer is ${names[uniq[0]]}.`)};
   }
   return null;
 }
-function buildRound(c,fresh){
-  if(!fresh) return c.puzzles;
-  if(c.id==="seats"){const r=[];while(r.length<6){const g=genSeating();if(g)r.push(g)}return r}
-  return shuffle(c.puzzles.concat(c.extra||[])).slice(0,6);
+
+/* ===== rankings (races, tests, contests) ===== */
+const RANK_CTX=[
+  {intro:n=>`${n} ran a race. There were no ties.`,ahead:"finished ahead of",justAhead:"finished just ahead of",first:"won the race",last:"came last"},
+  {intro:n=>`${n} took a spelling test. Nobody got the same score.`,ahead:"scored higher than",justAhead:"scored just above",first:"got the top score",last:"got the lowest score"},
+  {intro:n=>`${n} entered a baking contest and were ranked from 1st to last. There were no ties.`,ahead:"was ranked above",justAhead:"was ranked just above",first:"won the contest",last:"came last"}
+];
+function genRanking(level){
+  level=level||1;
+  for(let attempt=0;attempt<3000;attempt++){
+    const n=level===1?4:level===2?5:(Math.random()<0.5?5:6);
+    const names=shuffle(NAME_POOL).slice(0,n).sort();
+    const C=RANK_CTX[rnd(RANK_CTX.length)];
+    const all=perms([...Array(n).keys()]);              // order[0] is 1st place
+    const P=(o,x)=>o.indexOf(x);
+    const pick=()=>{const x=rnd(n);let y=rnd(n);while(y===x)y=rnd(n);return [x,y]};
+    const kinds=["ahead","ahead","notLast","notFirst"].concat(level===1?["place"]:level===2?["place","ahead"]:["just","notTop2","notLast","ahead"]);
+    const nClues=level===1?2+rnd(2):level===2?3+rnd(2):4+rnd(2);
+    const clues=[];
+    for(let k=0;k<nClues;k++){
+      const kind=kinds[rnd(kinds.length)],[x,y]=pick(),X=names[x],Y=names[y];let t,f;
+      if(kind==="ahead"){t=`${X} ${C.ahead} ${Y}.`;f=o=>P(o,x)<P(o,y)}
+      if(kind==="just"){t=`${X} ${C.justAhead} ${Y}, with nobody in between.`;f=o=>P(o,x)===P(o,y)-1}
+      if(kind==="notLast"){t=`${X} did not come last.`;f=o=>P(o,x)!==n-1}
+      if(kind==="notFirst"){t=`${X} did not come 1st.`;f=o=>P(o,x)!==0}
+      if(kind==="notTop2"){t=`${X} was not in the top two.`;f=o=>P(o,x)>1}
+      if(kind==="place"){const s=rnd(n);t=`${X} came ${ORD[s]}.`;f=o=>P(o,x)===s}
+      if(clues.some(c=>c.t===t)||clues.some(c=>c.t===`${Y} ${C.ahead} ${X}.`)){k--;continue}
+      clues.push({t,f});
+    }
+    const valid=all.filter(o=>clues.every(c=>c.f(o)));
+    if(valid.length<1) continue;
+    if(clues.some((c,i)=>all.filter(o=>clues.every((d,j)=>j===i||d.f(o))).length===valid.length)) continue;
+    const listOrders=valid.map((o,i)=>`(${i+1}) ${o.map(i=>names[i]).join(", ")}`).join("   ");
+    const board={type:"row",names,labels:ORD.slice(0,n),ends:false};
+    if(level===1){
+      if(valid.length>2) continue;
+      const s=Math.random()<0.5?n-1:rnd(n);
+      const ask=s===n-1?`Who ${C.last}?`:s===0?`Who came 1st?`:`Who came ${ORD[s]}?`;
+      const answers=valid.map(o=>o[s]); const uniq=[...new Set(answers)];
+      if((Math.random()<0.35)!==(uniq.length>1)) continue;
+      if(clues.some(c=>c.t.endsWith(`came ${ORD[s]}.`))) continue;
+      let pool=uniq.slice(0,3);const others=shuffle([...Array(n).keys()].filter(i=>!pool.includes(i)));
+      while(pool.length<3) pool.push(others.shift()); pool=shuffle(pool);
+      const opts=pool.map(i=>names[i]).concat([NP]); const a=uniq.length>1?3:pool.indexOf(uniq[0]);
+      return {gen:true,board,q:`<p>${C.intro(listNames(names))}</p><ul>${clues.map(c=>`<li>${c.t}</li>`).join("")}</ul><p class="ask">${ask}</p>`,
+        opts,a,why:opts.map((o,i)=>i===a?null:i===3?"Only one order fits every clue, so we CAN tell.":answers.includes(pool[i])?`${o} fits one order, but not every one.`:`${o} can't be in that place in any order that fits.`),
+        clues:["Write the places 1st to last. Put any fixed places in first.","Go through each person: could they be in that place? Use the “not” clues.",valid.length===1?"Only ONE order fits every clue.":`${valid.length} orders fit every clue. Do they agree?`],
+        explain:(valid.length===1?"Only one order fits every clue: ":`${valid.length} orders fit every clue: `)+listOrders+(uniq.length>1?". They disagree, so it is not possible to tell.":".")};
+    }
+    // levels 2–3: "which one must be true?"
+    if(valid.length<2||valid.length>(level===2?4:6)) continue;
+    const stmts=[];
+    for(let x=0;x<n;x++){for(let y=0;y<n;y++) if(x!==y) stmts.push({t:`${names[x]} ${C.ahead} ${names[y]}.`,f:o=>P(o,x)<P(o,y)});
+      for(let s=0;s<n;s++) stmts.push({t:s===0?`${names[x]} came 1st.`:s===n-1?`${names[x]} ${C.last}.`:`${names[x]} came ${ORD[s]}.`,f:o=>P(o,x)===s});
+      stmts.push({t:`${names[x]} did not come last.`,f:o=>P(o,x)!==n-1});}
+    const fresh=stmts.filter(st=>!clues.some(c=>c.t===st.t));
+    const always=shuffle(fresh.filter(st=>valid.every(st.f)&&!all.every(st.f)));
+    const sometimes=shuffle(fresh.filter(st=>valid.some(st.f)&&!valid.every(st.f)));
+    const never=shuffle(fresh.filter(st=>!valid.some(st.f)));
+    if(!always.length||sometimes.length<2) continue;
+    const wrong=sometimes.slice(0,level===3?3:2).concat(never.slice(0,1)).slice(0,3);
+    if(wrong.length<3) continue;
+    const pool=shuffle([always[0]].concat(wrong));
+    const a=pool.indexOf(always[0]);
+    const why=pool.map(st=>{if(st===always[0])return null;const k=valid.findIndex(o=>!st.f(o));
+      return valid.some(st.f)?`Could be true, but not in order (${k+1}): ${valid[k].map(i=>names[i]).join(", ")}. “Must” means true in EVERY order.`:"This can't happen in any order that fits the clues."});
+    return {gen:true,board,q:`<p>${C.intro(listNames(names))}</p><ul>${clues.map(c=>`<li>${c.t}</li>`).join("")}</ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+      opts:pool.map(s=>s.t),a,why,
+      clues:["Build one order that fits every clue on the scratch board.","Now try to build a DIFFERENT order that also fits. Use “+ Try another arrangement”.",`${valid.length} orders fit. The right answer is true in every one of them.`],
+      explain:`${valid.length} orders fit every clue: ${listOrders}. Only “${always[0].t.replace(/\.$/,"")}” is true in all of them.`};
+  }
+  return null;
 }
 
-/* ---------- scratch board ---------- */
-function npIndex(p){return p.opts.findIndex(o=>/not possible to tell/i.test(o))}
-function boardHTML(b){
-  const n=b.names.length, p=state.round[state.pi], k=npIndex(p);
-  if(!state.boards){state.boards=[Array(n).fill(-1)];state.marks=[null]}
-  const seatBtn=(a,i,label)=>{
-    const v=state.boards[a][i];
-    return `<button class="seat ${v>=0?"filled":""}" data-a="${a}" data-s="${i}" aria-label="Arrangement ${a+1}, ${label}: ${v>=0?b.names[v]:"empty"}">${v>=0?esc(b.names[v]):"?"}<small>${label}</small></button>`};
-  const one=a=>{
-    let inner="";
-    if(b.type==="row"){
-      const labels=b.labels||b.names.map((_,i)=>"Seat "+(i+1));
-      inner=`<div class="seats-row" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${labels.map((l,i)=>seatBtn(a,i,l)).join("")}</div>
-        ${b.ends===false?"":`<div class="ends"><span>← left</span><span>right →</span></div>`}`;
-    } else {
-      const r=38; let seats="", arrows="";
-      for(let i=0;i<n;i++){
-        const ang=Math.PI/2 + i*2*Math.PI/n;
-        const x=50+r*Math.cos(ang), y=50+r*Math.sin(ang);
-        const ax=50+24*Math.cos(ang), ay=50+24*Math.sin(ang), bx=50+14*Math.cos(ang), by=50+14*Math.sin(ang);
-        arrows+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="var(--muted)" stroke-width="1" marker-end="url(#ah${a})"/>`;
-        seats+=`<div style="position:absolute;left:${x}%;top:${y}%">${seatBtn(a,i,i===0?"bottom":"seat")}</div>`;
-      }
-      inner=`<div class="circle-box"><svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs><marker id="ah${a}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 z" fill="var(--muted)"/></marker></defs>
-        <circle cx="50" cy="50" r="27" fill="none" stroke="var(--line)" stroke-width="1"/>${arrows}</svg>${seats}</div>
-        <div class="ends"><span>← bottom person's left</span><span>bottom person's right →</span></div>`;
+/* ===== liars and truth-tellers ===== */
+const LIAR_CTX=[
+  {what:"Someone ate the last biscuit from the tin.",ask:"Who ate the biscuit?",did:"ate it"},
+  {what:"Someone let the class hamster out of its cage.",ask:"Who let the hamster out?",did:"let it out"},
+  {what:"Someone left the art-room tap running.",ask:"Who left the tap running?",did:"did it"},
+  {what:"Someone hid the PE teacher's whistle.",ask:"Who hid the whistle?",did:"hid it"},
+  {what:"Someone drew a moustache on the head teacher's portrait.",ask:"Who drew the moustache?",did:"did it"}
+];
+function genLiars(level){
+  level=level||1;
+  for(let attempt=0;attempt<4000;attempt++){
+    const n=level===1?3:4;
+    const names=shuffle(NAME_POOL).slice(0,n).sort();
+    const C=LIAR_CTX[rnd(LIAR_CTX.length)];
+    const rule=level<3?{liars:1,text:"Exactly one of them is lying. The others are telling the truth."}
+      :(Math.random()<0.5?{truth:1,text:"Exactly one of them is telling the truth. The others are all lying."}:{liars:2,text:"Exactly two of them are lying."});
+    const st=names.map((N,s)=>{
+      const others=[...Array(n).keys()].filter(i=>i!==s);
+      const kinds=["me","did","didnt"].concat(level>1?["either","didnt"]:[]).concat(level===3?["either"]:[]);
+      const k=kinds[rnd(kinds.length)], x=others[rnd(others.length)];
+      let y=others[rnd(others.length)];while(y===x&&others.length>1)y=others[rnd(others.length)];
+      if(k==="me") return {t:"I didn't do it.",f:c=>c!==s};
+      if(k==="did") return {t:`${names[x]} ${C.did}.`,f:c=>c===x};
+      if(k==="didnt") return {t:`It wasn't ${names[x]}.`,f:c=>c!==x};
+      const [p,q]=x<y?[x,y]:[y,x]; return {t:`It was either ${names[p]} or ${names[q]}.`,f:c=>c===p||c===q};
+    });
+    if(new Set(st.map(s=>s.t)).size<n) continue;
+    const ok=c=>{const tr=st.filter(s=>s.f(c)).length;return rule.truth?tr===1:(n-tr)===rule.liars};
+    const fits=[...Array(n).keys()].filter(ok);
+    if(fits.length!==1) continue;
+    const culprit=fits[0];
+    const askTruth=level===3&&rule.truth&&Math.random()<0.5;
+    const truthTeller=st.findIndex(s=>s.f(culprit));
+    const opts=names.slice(); if(n===3) opts.push(NP);
+    const a=askTruth?truthTeller:culprit;
+    const lies=c=>st.filter(s=>!s.f(c)).length;
+    const lines=[...Array(n).keys()].map(c=>`If ${names[c]} did it: ${lies(c)} lying${c===culprit?" ✅":" ❌"}`).join(" · ");
+    const target=rule.truth?"1 telling the truth":`${rule.liars} lying`;
+    return {gen:true,
+      board:{type:"grid",title:"Test each suspect",rows:names.map(N=>`If ${N} did it`),cols:names.map(N=>`${N} says`),values:["","T","F"],countF:true},
+      q:`<p>${C.what} ${listNames(names)} were asked about it.</p><ul>${st.map((s,i)=>`<li><b>${names[i]}:</b> “${s.t}”</li>`).join("")}</ul><p>${rule.text}</p><p class="ask">${askTruth?"Who was telling the truth?":C.ask}</p>`,
+      opts,a,
+      why:opts.map((o,i)=>i===a?null:i>=n?"Only one person fits, so we CAN tell.":askTruth?`${o}'s statement is false once you know who did it.`:`If ${o} did it, ${lies(i)} ${lies(i)===1?"person is":"people are"} lying, not ${target}.`),
+      clues:["Pretend each person did it, one at a time.","For each one, mark every statement T (true) or F (false) on the grid, then count the lies.",`You want the row with ${target}. Only one row fits.`],
+      explain:`${lines}. ${names[culprit]} is the only one that fits “${rule.text.split(".")[0].toLowerCase()}”.${askTruth?` Then only ${names[truthTeller]}'s statement is true.`:""}`};
+  }
+  return null;
+}
+
+/* ===== matching grids ===== */
+const ATTRS=[
+  {key:"pet",vals:["cat","dog","rabbit","hamster"],pos:v=>`has the ${v}`,neg:v=>`does not have the ${v}`,lab:"Pet"},
+  {key:"colour",vals:["red","blue","green","yellow"],pos:v=>`likes ${v} best`,neg:v=>`does not like ${v} best`,lab:"Colour"},
+  {key:"inst",vals:["cello","flute","drums","violin"],pos:v=>`plays the ${v}`,neg:v=>`does not play the ${v}`,lab:"Instrument"},
+  {key:"snack",vals:["crisps","an apple","popcorn","a banana"],pos:v=>`brought ${v}`,neg:v=>`did not bring ${v}`,lab:"Snack"}
+];
+function genGrid(level){
+  level=level||1;
+  for(let attempt=0;attempt<2000;attempt++){
+    const n=level===3?4:3, k=level===1?1:2;
+    const names=shuffle(NAME_POOL).slice(0,n).sort();
+    const at=shuffle(ATTRS).slice(0,k).map(A=>({...A,vals:shuffle(A.vals).slice(0,n)}));
+    const P=perms([...Array(n).keys()]);
+    let all=P.map(p=>[p]); if(k===2) all=P.flatMap(p=>P.map(q=>[p,q]));   // sol[a][person] = value index
+    const sol=all[rnd(all.length)];
+    const cand=[];
+    for(let p=0;p<n;p++) for(let ai=0;ai<k;ai++) for(let v=0;v<n;v++){
+      const A=at[ai],V=A.vals[v];
+      if(sol[ai][p]===v) cand.push({t:`${names[p]} ${A.pos(V)}.`,f:s=>s[ai][p]===v,w:1});
+      else cand.push({t:`${names[p]} ${A.neg(V)}.`,f:s=>s[ai][p]!==v,w:2});
     }
+    if(k===2) for(let v=0;v<n;v++) for(let w=0;w<n;w++){
+      const pw=sol[0].indexOf(v), linked=sol[1][pw]===w;
+      const s1=at[0].pos(at[0].vals[v]), s2=at[1].pos(at[1].vals[w]), n2=at[1].neg(at[1].vals[w]);
+      cand.push(linked?{t:`The person who ${s1} ${s2}.`,f:s=>s[1][s[0].indexOf(v)]===w,w:3}:{t:`The person who ${s1} ${n2}.`,f:s=>s[1][s[0].indexOf(v)]!==w,w:3});
+    }
+    // weighted shuffle: prefer "not" and linking clues
+    let pool=shuffle(cand).sort((x,y)=>(y.w+Math.random()*2)-(x.w+Math.random()*2));
+    const clues=[];let valid=all;
+    for(const c of pool){ if(valid.length===1) break; const nv=valid.filter(c.f); if(nv.length<valid.length){clues.push(c);valid=nv} }
+    if(valid.length!==1) continue;
+    const trimmed=trimClues(clues,all,v=>v.length===1);
+    const directs=trimmed.filter(c=>c.w===1).length;
+    if(directs>(level===1?1:1)) continue;
+    if(trimmed.length<(level===1?2:level===2?3:5)||trimmed.length>(level===3?8:6)) continue;
+    // question: one true fact, three false
+    const facts=[],falses=[];
+    for(let p=0;p<n;p++) for(let ai=0;ai<k;ai++) for(let v=0;v<n;v++){
+      const t=`${names[p]} ${at[ai].pos(at[ai].vals[v])}.`;
+      if(trimmed.some(c=>c.t===t)) continue;
+      (sol[ai][p]===v?facts:falses).push(t);
+    }
+    if(!facts.length||falses.length<3) continue;
+    const right=facts[rnd(facts.length)];
+    const opts=shuffle([right].concat(shuffle(falses).slice(0,3)));
+    const a=opts.indexOf(right);
+    const solText=names.map((N,p)=>`${N}: ${at.map(A=>A.vals[sol[at.indexOf(A)][p]]).join(", ")}`).join(" · ");
+    return {gen:true,
+      board:{type:"grid",title:"Logic grid",rows:names,cols:at.flatMap(A=>A.vals.map(v=>({g:A.lab,v}))),values:["","✗","✓"]},
+      q:`<p>${listNames(names)} each ${at.map(A=>A.key==="pet"?"have a different pet":A.key==="colour"?"like a different colour best":A.key==="inst"?"play a different instrument":"brought a different snack").join(" and ")}: ${at.map(A=>listNames(A.vals)).join("; and ")}.</p><ul>${trimmed.map(c=>`<li>${c.t}</li>`).join("")}</ul><p class="ask">Which one of these is correct?</p>`,
+      opts,a,
+      why:opts.map(o=>o===right?null:"Fill in the grid: this one gets a ✗."),
+      clues:["Use the grid. Put ✓ for definite facts and ✗ for every “not” clue.","Each row and each column of a group can only have ONE ✓. When a row has all ✗ but one, the last box is ✓.",k===2?"For “The person who… ” clues, find who that person is first, then use their row.":"Look for a row or column with only one empty box left."],
+      explain:`The only way to fit every clue: ${solText}.`};
+  }
+  return null;
+}
+/* ----- extra exam-level puzzles for the first mystery's cases ----- */
+const LOGIC_EXAM=[
+  {q:`<ul><li>No one who plays the trumpet is in the choir.</li><li>Some members of the orchestra are in the choir.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+   opts:["Some members of the orchestra do not play the trumpet.","Everyone in the choir is in the orchestra.","No trumpet players are in the orchestra.","Some choir members play the trumpet."],a:0,
+   clues:["Arrow: Choir ➜ Not trumpet.","Think about the orchestra members who ARE in the choir. What do you know about them?","They're in the choir, so they don't play the trumpet."],
+   why:[null,"We only know SOME orchestra members are in the choir — not the other way round.","Orchestra members who aren't in the choir could play the trumpet.","Choir ➜ not trumpet, so this is impossible."],
+   explain:"The orchestra members who are in the choir can't play the trumpet, so at least some orchestra members don't."},
+  {q:`<ul><li>If it rains, the match is cancelled.</li><li>If the match is cancelled, the team trains indoors.</li><li>The team did NOT train indoors.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+   opts:["It rained.","The match was cancelled.","The team trained outdoors.","It did not rain."],a:3,
+   clues:["Chain: Rain ➜ Cancelled ➜ Indoors.","Use the backwards trick on the whole chain: Not indoors ➜ ?","Not indoors ➜ not cancelled ➜ not rain."],
+   why:["If it had rained, they would have trained indoors.","If it had been cancelled, they would have trained indoors.","Tempting! But maybe they didn't train at all.",null],
+   explain:"Backwards trick down the chain: not indoors ➜ not cancelled ➜ no rain."},
+  {q:`<ul><li>Every dog owner in the class also owns a cat.</li><li>Nobody who owns a cat owns a hamster.</li><li>Priya owns a hamster.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+   opts:["Priya owns a cat.","Priya does not own a dog.","Everyone who owns a cat owns a dog.","Priya owns a dog but no cat."],a:1,
+   clues:["Arrows: Dog ➜ Cat. Cat ➜ Not hamster.","Priya HAS a hamster. Use the backwards trick: Hamster ➜ ?","Hamster ➜ not cat ➜ not dog."],
+   why:["Hamster owners can't own cats.",null,"Arrow turned round.","Dog owners always own cats, so this is impossible."],
+   explain:"Hamster ➜ no cat ➜ no dog. Priya can't own a dog."},
+  {q:`<p>“Ola has swimming every Tuesday and never on any other day. On days she has swimming, she eats pasta for tea.”</p><p class="ask">Which of these statements are <u>NOT</u> true?</p><p>(a) Ola had swimming on Friday.<br>(b) Ola ate pasta last Tuesday.<br>(c) Ola ate pasta on Thursday, so she must have had swimming that day.<br>(d) Ola didn't have swimming last Tuesday.</p>`,
+   opts:["(a) and (d) only","(a), (c) and (d) only","(c) only","(b) and (c) only"],a:1,
+   clues:["Circle NOT. Mark each statement T or F.","(b): Tuesday ➜ swimming ➜ pasta. True!","(c) says she had swimming on a Thursday. Can that happen?"],
+   why:["(a) and (d) are not true — but neither is (c).",null,"(c) is not true, but there are more.","(b) IS true: Tuesday ➜ swimming ➜ pasta."],
+   explain:"(a) and (d) break “every Tuesday and never on any other day”. (c) turns the arrow round: pasta doesn't mean swimming — and swimming on Thursday is impossible."}
+];
+const ARGS_EXAM=[
+  {q:`<p>Mia says: “The new café will be busy, because it is right next to the train station.”</p><p class="ask">Which one of these is an <u>assumption</u> Mia is making?</p>`,
+   opts:["Lots of people using the station will want to stop at a café.","The café sells cakes.","Train stations are noisy.","The café is open every day."],a:0,
+   clues:["An assumption is something the speaker takes for granted but doesn't say.","Ask: what must be true for “next to the station” to mean “busy”?","Try the “take it away” test: if this were false, would the argument fall apart?"],
+   why:[null,"Nice, but the argument doesn't depend on cakes.","Doesn't connect the station to the café being busy.","Not needed for her reasoning."],
+   explain:"If station users didn't want a café, being next to the station wouldn't make it busy. The argument depends on it."},
+  {q:`<p>Children who sleep for at least ten hours usually concentrate better. Jake sleeps for eight hours and finds it hard to concentrate at school.</p><p class="ask">Which is the most <u>reasonable conclusion</u>?</p>`,
+   opts:["Jake doesn't like school.","Jake will definitely concentrate well if he sleeps ten hours.","Jake might concentrate better if he slept longer.","Sleep is the only reason anyone concentrates badly."],a:2,
+   clues:["Watch out for strong words: definitely, only, always, all.","The facts say “usually”. A good conclusion shouldn't be stronger than the facts.","Which option is careful enough to be safe?"],
+   why:["Not supported by the facts.","“Definitely” is too strong — the facts only say “usually”.",null,"“Only” is far too strong."],
+   explain:"“Might” matches “usually”. Strong words like “definitely” or “only” go further than the facts."},
+  {q:`<p>“Everyone in my class who has a tablet got a good mark in the test. So buying tablets for everyone will make everyone get good marks.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> the argument?</p>`,
+   opts:["Tablets are expensive.","The pupils with tablets also had extra tutoring every week.","Some tablets have games on them.","The test was in maths."],a:1,
+   clues:["The claim: tablets ➜ good marks.","Weakening often means finding ANOTHER reason for the good marks.","Which option gives the tablet owners a different advantage?"],
+   why:["Cost doesn't tell us whether tablets work.",null,"Doesn't show tablets didn't help.","Off topic."],
+   explain:"The extra tutoring could be the real reason for the good marks, not the tablets."},
+  {q:`<p>The head teacher says: “Our new ‘no phones at lunch’ rule has made pupils more active.”</p><p class="ask">Which one of these, if true, <u>most strengthens</u> her argument?</p>`,
+   opts:["Pupils were asked whether they like the rule.","Many pupils own phones.","Phones can be useful in emergencies.","Since the rule started, twice as many pupils play games outside at lunch, and the weather has been similar."],a:3,
+   clues:["The claim: no phones ➜ more active.","Look for evidence about activity that changed when the rule started.","Bonus: does any option rule out another explanation, like better weather?"],
+   why:["Liking a rule doesn't show they're more active.","Doesn't show any change in activity.","A reason against the rule, if anything.",null],
+   explain:"It links the rule to more activity, and “similar weather” rules out the most obvious other explanation."}
+];
+
+/* ----- new cases ----- */
+const NEW_CASES=[
+{
+  id:"rank", tab:"CASE 4", title:"The Ranking Room", gen:"genRanking",
+  blurb:"Races, tests and contests: who came where, and what MUST be true?",
+  rule:"Build every order that fits.",
+  steps:["Write the places from 1st to last.","Put in any fixed places, then the “ahead of” clues.","Use the “not” clues: “did not come last” often decides it.","For “must be true”, build two different orders that fit. The answer is true in BOTH."],
+  fromTest:"From your test: Q8, Q15, Q23.",
+  evidence:"Only someone with a KEY could open the display case."
+},
+{
+  id:"liars", tab:"CASE 5", title:"The Liars' Lounge", gen:"genLiars",
+  blurb:"Some suspects are lying. Work out who did it.",
+  rule:"Pretend each one did it. Count the lies.",
+  steps:["Read the rule carefully: how many are lying, or how many are telling the truth?","Pretend the first suspect did it. Mark every statement T or F.","Count the lies. Does it match the rule? ✅ or ❌","Do the same for every suspect. Only one row fits."],
+  fromTest:"From your test: Q26 (the doors) and Q37 (the band).",
+  evidence:"Everyone WITHOUT a hat was in the museum café at midnight. The thief was NOT in the café. (Backwards trick!)"
+},
+{
+  id:"grid", tab:"CASE 6", title:"The Logic Grid Lab", gen:"genGrid",
+  blurb:"Who has which pet, colour or instrument? Fill the grid.",
+  rule:"✓ one per row, ✗ the rest.",
+  steps:["Put a ✓ for every definite fact and ✗ for every “not” clue.","Each person has exactly one of each thing, so when you place a ✓, put ✗ in the rest of that row AND column.","If a row has only one empty box left, it's a ✓.","For “The person who has the cat…” clues, find who that person is first."],
+  fromTest:"From your test: Q27 (pizza toppings) and Q39 (kings and queens).",
+  evidence:"MUDDY BOOT prints led away from the display case."
+},
+{
+  id:"court", tab:"CASE 7", title:"The Courtroom", 
+  blurb:"Hidden assumptions and the best conclusions.",
+  rule:"What must be true for this to work?",
+  steps:["Find the claim and the reason (look for “because” or “so”).","Assumption: the unspoken link between the reason and the claim. Test it: if it were false, would the argument fall apart?","Conclusion: pick what the facts really show — not more.","Beware strong words: definitely, all, only, always, never."],
+  fromTest:"Builds on Q1 and Q38 at exam level.",
+  evidence:"Everyone with an UMBRELLA left the courthouse before the storm. The thief stayed until after the storm. (Backwards trick!)",
+  bank:[
+    {lvl:1,q:`<p>Tom says: “I'll be on time for school today, because I'm leaving home at my normal time.”</p><p class="ask">Which one of these is Tom <u>assuming</u>?</p>`,
+     opts:["The journey will take as long as it normally does.","Tom likes school.","Tom has eaten breakfast.","School starts at 9 o'clock."],a:0,
+     clues:["An assumption is something taken for granted but not said.","What has to be true for “normal time” to mean “on time”?","Take-it-away test: if this were false, would Tom still be on time?"],
+     why:[null,"Doesn't affect whether he's on time.","Doesn't affect the journey.","The time school starts isn't the gap in his reasoning."],
+     explain:"If the journey took longer than usual (traffic, a missed bus), leaving at the normal time wouldn't make him on time."},
+    {lvl:1,q:`<p>All the books on the top shelf are poetry books. This book came from the top shelf.</p><p class="ask">Which is the best <u>conclusion</u>?</p>`,
+     opts:["All poetry books are on the top shelf.","The top shelf is full.","This book is a poetry book.","This book is very long."],a:2,
+     clues:["Write it as an arrow: Top shelf ➜ Poetry.","Follow the arrow forwards.","Which option follows from the facts and nothing more?"],
+     why:["Arrow turned round.","Not mentioned.",null,"Not mentioned."],
+     explain:"Top shelf ➜ poetry. This book came from the top shelf, so it's poetry."},
+    {lvl:1,q:`<p>Jess says: “I'll win the art prize, because my painting is the most colourful.”</p><p class="ask">Which one of these is Jess <u>assuming</u>?</p>`,
+     opts:["Jess paints every day.","The judges like colourful paintings best.","Paint can be messy.","There are lots of entries."],a:1,
+     clues:["Reason: most colourful. Claim: will win.","What links “colourful” to “winning”?","Take-it-away test: if the judges didn't care about colour, would she still win?"],
+     why:["Doesn't link colour to winning.",null,"Off topic.","Doesn't link colour to winning."],
+     explain:"Her reasoning only works if the judges prize colour."},
+    {lvl:2,q:`<p>The manager says: “The cinema should show films earlier in the evening, so that more families will come.”</p><p class="ask">Which one of these is an <u>assumption</u> the manager is making?</p>`,
+     opts:["Films are expensive to make.","Some films are scary.","The cinema has comfy seats.","Families find the current showing times too late for their children."],a:3,
+     clues:["Reason: earlier films. Claim: more families.","Why would earlier times bring more families?","Take-it-away test on each option."],
+     why:["Off topic.","Off topic.","Doesn't explain why the time matters.",null],
+     explain:"If families were happy with late times, showing films earlier wouldn't bring more of them."},
+    {lvl:2,q:`<p>Plants need sunlight to grow well. Ravi's tomato plant has been kept in a dark cupboard for a month. It is small and pale.</p><p class="ask">Which is the most <u>reasonable conclusion</u>?</p>`,
+     opts:["The plant needs more water.","Ravi's plant would probably grow better in sunlight.","All plants kept in cupboards die.","Ravi doesn't like tomatoes."],a:1,
+     clues:["Which option uses the facts given?","Watch out for “all”.","Water isn't mentioned at all."],
+     why:["Water isn't mentioned.",null,"“All” is far too strong, and nothing died.","Not supported."],
+     explain:"The facts are about sunlight, and “probably” is careful enough."},
+    {lvl:2,q:`<p>“We should put a zebra crossing outside the school, because it will make crossing the road safer for pupils.”</p><p class="ask">Which one of these is an <u>assumption</u>?</p>`,
+     opts:["Pupils walk to school in groups.","The road is very long.","Drivers will stop at the zebra crossing.","Zebras are black and white."],a:2,
+     clues:["Reason: zebra crossing. Claim: safer.","What would have to happen for a crossing to make it safer?","Take-it-away test: if drivers ignored it…"],
+     why:["Not needed for the argument.","Off topic.",null,"A joke option!"],
+     explain:"A crossing only makes things safer if drivers actually stop at it."},
+    {lvl:2,q:`<p>Every member of the chess club is also in the maths club. The maths club meets on Tuesdays. Sam is in the chess club.</p><p class="ask">Which is the best <u>conclusion</u>?</p>`,
+     opts:["Everyone in the maths club plays chess.","Sam is good at maths.","Sam goes to the chess club on Tuesdays.","Sam is in the maths club."],a:3,
+     clues:["Arrow: Chess club ➜ Maths club.","Follow it forwards for Sam.","Watch for options that turn the arrow round or add new facts."],
+     why:["Arrow turned round.","Being in a club doesn't mean you're good at it.","We know when the MATHS club meets, not the chess club.",null],
+     explain:"Chess club ➜ maths club, and Sam is in the chess club."},
+    {lvl:3,q:`<ul><li>Most pupils in Year 6 walk to school.</li><li>Everyone who walks to school arrives before 8:50.</li><li>Lucy is in Year 6.</li></ul><p class="ask">Which one of these can be <u>concluded</u>?</p>`,
+     opts:["Lucy arrives before 8:50.","Lucy walks to school.","Most Year 6 pupils arrive before 8:50.","Nobody in Year 6 is late."],a:2,
+     clues:["“Most” is not “all”. Lucy might not be one of the walkers.","Arrow: Walks ➜ Before 8:50.","Apply the arrow to the walkers: the MOST of Year 6."],
+     why:["Lucy might be one of the pupils who don't walk.","“Most” doesn't mean Lucy.",null,"Non-walkers might be late."],
+     explain:"Most Year 6 pupils walk, and every walker arrives before 8:50, so most Year 6 pupils do."},
+    {lvl:3,q:`<p>“Our town doesn't need a new library. Almost everyone has the internet at home now, so they can read online instead.”</p><p class="ask">Which one of these is an <u>assumption</u> in this argument?</p>`,
+     opts:["The internet is fast.","Libraries are old buildings.","Some people like reading in cafés.","Reading online can replace everything people use a library for."],a:3,
+     clues:["Reason: everyone has the internet. Claim: no library needed.","What must be true for the internet to make the library unnecessary?","Take-it-away test on each option."],
+     why:["Speed isn't the gap in the argument.","Off topic.","Off topic.",null],
+     explain:"If libraries offer things the internet doesn't (books for children, quiet study space, help), the argument falls apart."},
+    {lvl:3,q:`<p>In a survey, children who ate breakfast every day got higher marks on average than children who skipped breakfast.</p><p class="ask">Which is the most <u>reasonable conclusion</u>?</p>`,
+     opts:["Eating breakfast definitely causes higher marks.","Every child who eats breakfast gets high marks.","Eating breakfast is linked with getting higher marks.","Children who skip breakfast are lazy."],a:2,
+     clues:["“On average” doesn't mean every child.","Does the survey PROVE breakfast causes it, or just show they go together?","Pick the option that doesn't go further than the facts."],
+     why:["“Definitely causes” is too strong — something else could explain both.","“Every” is too strong — it was an average.",null,"Not supported, and unkind!"],
+     explain:"A survey shows a link. It doesn't prove the cause, and an average doesn't apply to every child."}
+  ]
+},
+{
+  id:"flaws", tab:"CASE 8", title:"The Flaw Finders",
+  blurb:"Spot the mistake in someone's reasoning.",
+  rule:"Does the reason really prove the claim?",
+  steps:["Find the claim and the reason.","Ask: does the reason REALLY prove the claim? What's missing?","Common flaws: too few examples, turning a rule round, only two choices, “it happened before so it'll happen again”, attacking the person, “they happen together so one causes the other”.","The answer explains WHY the reasoning fails — not just another fact."],
+  fromTest:"Builds on Q1, Q19 and Q38 at exam level.",
+  evidence:"A thread from a RED SCARF was found where the golden gavel was kept.",
+  bank:[
+    {lvl:1,q:`<p>“My brother has never been stung by a bee, so bees don't sting.”</p><p class="ask">What is wrong with this argument?</p>`,
+     opts:["Bees make honey.","One person's experience doesn't prove something about all bees.","Bees are insects.","The brother might be younger."],a:1,
+     clues:["Claim: bees don't sting. Reason: brother never stung.","Is one example enough to prove something about ALL bees?","Pick the option that explains the mistake."],
+     why:["True, but doesn't explain the mistake.",null,"True, but off topic.","Doesn't explain the mistake."],
+     explain:"Too few examples: one person not being stung doesn't prove no bee ever stings."},
+    {lvl:1,q:`<p>“Everyone who wins the race wears trainers. Mo is wearing trainers, so Mo will win the race.”</p><p class="ask">What is wrong with this argument?</p>`,
+     opts:["It turns the rule round: wearing trainers doesn't mean you'll win.","Mo might be fast.","Trainers are comfy.","The race is short."],a:0,
+     clues:["Arrow: Wins ➜ Trainers.","Does Trainers ➜ Wins follow?","Arrows only go forwards!"],
+     why:[null,"Doesn't explain the mistake.","Off topic.","Off topic."],
+     explain:"Wins ➜ trainers. Turning it round to trainers ➜ wins is the arrow mistake."},
+    {lvl:1,q:`<p>“This cereal box has a picture of a famous footballer on it, so the cereal must be healthy.”</p><p class="ask">What is wrong with this argument?</p>`,
+     opts:["Footballers are fit.","The box is colourful.","Cereal is for breakfast.","A famous person on the box doesn't tell you whether the food is healthy."],a:3,
+     clues:["Claim: healthy. Reason: footballer on the box.","Does a picture prove what's inside?","Pick the option that explains the gap."],
+     why:["Doesn't make the cereal healthy.","Off topic.","Off topic.",null],
+     explain:"Who is on the box tells you nothing about what's in the cereal."},
+    {lvl:2,q:`<p>“Ice cream sales and sunburn both go up in summer. So eating ice cream causes sunburn.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Ice cream is cold.","Sunburn hurts.","Both could be caused by something else: hot, sunny weather.","Some people don't like ice cream."],a:2,
+     clues:["Two things happen together. Does one cause the other?","Is there a third thing that could cause both?","Think about the weather."],
+     why:["Off topic.","Off topic.",null,"Doesn't explain the mistake."],
+     explain:"Sunny weather causes both. Happening together doesn't mean one causes the other."},
+    {lvl:2,q:`<p>“Either we get a dog, or we'll never have any fun at home again.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Dogs need walking.","Dogs are fun.","Dogs can be noisy.","It pretends there are only two choices, when there are lots of other ways to have fun."],a:3,
+     clues:["How many choices does the speaker give?","Are there really only two?","Pick the option that names the mistake."],
+     why:["Off topic.","Doesn't explain the mistake.","Off topic.",null],
+     explain:"It's a false choice: there are many other ways to have fun."},
+    {lvl:2,q:`<p>“I asked three friends at the skate park, and all of them said skateboarding is the best sport. So most children think skateboarding is the best sport.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Skateboarding can be dangerous.","Three friends at a skate park aren't a fair sample of all children.","The skate park was busy.","Friends usually tell the truth."],a:1,
+     clues:["Who was asked? How many?","Would people at a skate park be likely to prefer skateboarding?","Pick the option that explains why the survey doesn't prove the claim."],
+     why:["Off topic.",null,"Doesn't explain the mistake.","Doesn't explain the mistake."],
+     explain:"Too few people, and all from a skate park — not a fair picture of all children."},
+    {lvl:2,q:`<p>“We've had a picnic every summer for five years and it has never rained. So it won't rain at this year's picnic.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Picnics are fun.","What happened before doesn't guarantee what will happen next time.","Five years is a long time.","It might be sunny."],a:1,
+     clues:["Does the past prove the future?","Is there any reason the weather has to copy past years?","Pick the option that names the mistake."],
+     why:["Off topic.",null,"Doesn't explain the mistake.","That agrees with the speaker — not a flaw."],
+     explain:"The weather doesn't have to repeat itself just because it did before."},
+    {lvl:3,q:`<p>“Since the new head teacher arrived, test scores have gone up. So she must be the reason.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> the argument?</p>`,
+     opts:["The head teacher is friendly.","Pupils like the new uniform.","Test scores matter to parents.","This year's tests were made easier for every school in the country."],a:3,
+     clues:["Claim: she caused the rise. Reason: it happened after she arrived.","Something happening AFTER doesn't mean it was caused by it.","Look for another explanation."],
+     why:["Doesn't explain the scores.","Off topic.","Off topic.",null],
+     explain:"If the tests got easier everywhere, scores would rise whoever the head teacher was."},
+    {lvl:3,q:`<p>“Nobody has ever proved that the school ghost isn't real, so it must be real.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Ghosts are scary.","Not being proved false doesn't make something true.","The school is very old.","Some people believe in ghosts."],a:1,
+     clues:["What is the reason given?","Does “not proved false” mean “true”?","Pick the option that names the mistake."],
+     why:["Off topic.",null,"Off topic.","Believing something doesn't make it true either."],
+     explain:"Lack of proof against something isn't proof for it."},
+    {lvl:3,q:`<p>“Sam said the film was boring, but Sam is always grumpy, so the film must be good.”</p><p class="ask">What is the flaw in this argument?</p>`,
+     opts:["Films can be long.","The film had good music.","It attacks Sam instead of looking at whether the film really was boring.","Sam might be tired."],a:2,
+     clues:["What is the argument about: Sam, or the film?","Does Sam being grumpy prove the film is good?","Pick the option that names the mistake."],
+     why:["Off topic.","Another fact — not the flaw.",null,"Still about Sam, not the reasoning."],
+     explain:"Attacking the person doesn't show their point is wrong."}
+  ]
+}
+];
+/* ----- assemble cases ----- */
+CASES[2].puzzles.push(CASES[2].extra.shift());          // 6 originals in every first-mystery case
+CASES[0].gen="genSeating";
+CASES[1].exam=LOGIC_EXAM; CASES[2].exam=ARGS_EXAM;
+CASES.push(...NEW_CASES);
+const GENS={genSeating,genRanking,genLiars,genGrid};
+const LEVELS=[null,{name:"Trainee",tag:"Level 1"},{name:"Detective",tag:"Level 2"},{name:"Exam level",tag:"Level 3"}];
+const UNLOCK=10;
+
+const MYSTERIES=[
+  {id:"bow",key:"caught",title:"The Case of the Vanishing Golden Bow",cases:["seats","logic","args"],
+   intro:"Disaster at the school concert! The Golden Bow trophy has vanished from the music room. Solve each case file to unlock a piece of evidence, then name the thief.",
+   traits:[["back","Back row","Front row"],["glasses","Glasses","No glasses"],["left","Left-handed","Right-handed"]],
+   suspects:[
+     {name:"Mr Crumble",role:"the caretaker",face:"🧹",back:true,glasses:true,left:true,alibi:"Mr Crumble wears glasses, so he signed the visitors' book. Evidence 2 rules him out."},
+     {name:"Ms Fizz",role:"the science teacher",face:"🧪",back:true,glasses:false,left:false,alibi:"Ms Fizz is right-handed. Evidence 3 rules her out."},
+     {name:"Dr Quaver",role:"the conductor",face:"🎼",back:false,glasses:false,left:true,alibi:"Dr Quaver was at the front, conducting. Evidence 1 rules him out."},
+     {name:"Pippa Prowl",role:"the piano tuner",face:"🎹",back:true,glasses:false,left:true}],
+   thief:3,win:"Pippa Prowl sat in the back row, doesn't wear glasses (so she didn't sign the book), and is left-handed. The Golden Bow is back in time for the concert! 🎻"},
+  {id:"museum",key:"caught2",title:"The Midnight Museum Mystery",cases:["rank","liars","grid"],
+   intro:"At midnight, the Starlight Diamond disappeared from the city museum. Four people were still inside. Crack the next three cases to find out who took it.",
+   traits:[["key","Has a key","No key"],["hat","Wears a hat","No hat"],["boots","Muddy boots","Clean shoes"]],
+   suspects:[
+     {name:"Lady Velvet",role:"the curator",face:"🦚",key:true,hat:false,boots:true,alibi:"Lady Velvet has no hat, so she was in the café. Evidence 2 rules her out."},
+     {name:"Mr Tock",role:"the clockmaker",face:"🕰️",key:true,hat:true,boots:false,alibi:"Mr Tock's shoes are clean. Evidence 3 rules him out."},
+     {name:"Bram Stone",role:"the night guard",face:"🔦",key:false,hat:true,boots:true,alibi:"Bram Stone has no key to the case. Evidence 1 rules him out."},
+     {name:"Nell Quill",role:"the artist",face:"🎨",key:true,hat:true,boots:true}],
+   thief:3,win:"Nell Quill has a key, wears a hat (so she wasn't in the café) and has muddy boots. The Starlight Diamond is safe! 💎"},
+  {id:"court",key:"caught3",title:"The Golden Gavel Affair",cases:["court","flaws"],
+   intro:"The judge's golden gavel has vanished from the courthouse during a storm. Three people had the chance. Win both court cases to unlock the evidence.",
+   traits:[["umbrella","Umbrella","No umbrella"],["scarf","Red scarf","No scarf"]],
+   suspects:[
+     {name:"Captain Rook",role:"the lawyer",face:"🧭",umbrella:true,scarf:true,alibi:"Captain Rook had an umbrella, so he left before the storm. Evidence 1 rules him out."},
+     {name:"Madame Cog",role:"the court clerk",face:"⚙️",umbrella:false,scarf:false,alibi:"Madame Cog doesn't wear a red scarf. Evidence 2 rules her out."},
+     {name:"Sir Pebble",role:"the witness",face:"🐢",umbrella:false,scarf:true}],
+   thief:2,win:"Sir Pebble had no umbrella (so he stayed through the storm) and wears a red scarf. Case closed, and the court is back in session! ⚖️"}
+];
+const caseById=id=>CASES.find(c=>c.id===id);
+const mysteryOf=c=>MYSTERIES.find(m=>m.cases.includes(c.id));
+
+/* ----- storage ----- */
+const KEY="greta-case-files-v1";
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let mode=ls.get(KEY+"-mode")||"dark";
+function applyMode(){document.documentElement.classList.toggle("light",mode==="light")}
+applyMode();
+let playerName=ls.get(KEY+"-name")||"";
+let progress={}; try{progress=JSON.parse(ls.get(KEY)||"{}")||{}}catch(e){progress={}}
+let state={view:"home"};
+function save(){ls.set(KEY,JSON.stringify(progress));cloudSave()}
+function saveRun(){if(state.view==="puzzle"){ls.set(KEY+"-run",JSON.stringify({ci:state.ci,level:state.level,pi:state.pi,results:state.results,pts:state.pts,streak:state.streak,round:state.round,solved:state.solved||state.tries>=2}));setTimeout(cloudSave,0)}}
+function loadRun(){try{const r=JSON.parse(ls.get(KEY+"-run")||"null");return r&&CASES[r.ci]&&r.round?r:null}catch(e){return null}}
+function clearRun(){ls.del(KEY+"-run");setTimeout(cloudSave,0)}
+
+/* points per case and level (older saves stored one "points" number = level 1) */
+function lvPts(c,l){const p=progress[c.id];if(!p)return 0;const lv=p.lv||{1:p.points||0};return lv[l]||0}
+function casePts(c){return [1,2,3].reduce((t,l)=>t+lvPts(c,l),0)}
+function unlockedLevel(c){return lvPts(c,1)>=UNLOCK?(lvPts(c,2)>=UNLOCK?3:2):1}
+function totalPoints(){return CASES.reduce((t,c)=>t+casePts(c),0)}
+function maxPoints(){return CASES.length*3*18}
+const RANKS=[[0,"Rookie"],[20,"Detective Constable"],[50,"Detective Sergeant"],[90,"Detective Inspector"],[150,"Detective Chief Inspector"],[230,"Superintendent"],[330,"Chief Superintendent"]];
+function rank(){const score=totalPoints()+MYSTERIES.filter(m=>progress[m.key]).length*25;let r=RANKS[0][1];for(const [n,t] of RANKS) if(score>=n) r=t;return r}
+const solvedAll=m=>m.cases.every(id=>progress[id]);
+
+/* account saving inside Claude (private to the player); does nothing elsewhere */
+let cloudRef=null, cloudTimer=null;
+function mergeProg(a,b){const o=Object.assign({},a);
+  for(const k in b){const y=b[k];
+    if(typeof y==="boolean"){o[k]=!!(o[k]||y);continue}
+    if(!y||typeof y!=="object")continue;
+    const x=o[k];if(!x){o[k]=y;continue}
+    const lx=x.lv||{1:x.points||0}, ly=y.lv||{1:y.points||0}, lv={};
+    for(const l of [1,2,3]) lv[l]=Math.max(lx[l]||0,ly[l]||0);
+    o[k]={best:Math.max(x.best||0,y.best||0),points:lv[1],lv};}
+  return o}
+function cloudSave(){if(!cloudRef)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{
+  cloudRef.set({json:JSON.stringify({progress,name:playerName,run:loadRun()}),savedAt:Date.now()}).catch(()=>{})},800)}
+async function cloudInit(){try{
+  if(!window.claude||typeof window.claude.use!=="function")return;
+  const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
+  if(!db||!user)return; const id=await user.id(); if(!id)return;
+  const ref=db.doc("data/users/"+id+"/progress"); const snap=await ref.get();
+  if(snap.exists){const d=JSON.parse((snap.data()||{}).json||"{}");
+    progress=mergeProg(progress,d.progress||{});ls.set(KEY,JSON.stringify(progress));
+    if(!playerName&&d.name){playerName=d.name;ls.set(KEY+"-name",d.name)}
+    if(!loadRun()&&d.run) ls.set(KEY+"-run",JSON.stringify(d.run));}
+  cloudRef=ref; cloudSave(); if(state.view==="home"||state.view==="accuse") render(true);
+}catch(e){}}
+
+/* ----- fun ----- */
+const PRAISE=["Elementary!","Sharp eyes!","Case cracked!","Brilliant deduction!","The clues never lie!","Super sleuthing!","Spot on, detective!"];
+let soundOn=ls.get(KEY+"-sound")==="1", actx=null;
+function chime(good){if(!soundOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  (good?[523,659,784]:[330,262]).forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime+i*0.11;o.type="triangle";o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+0.32)})}catch(e){}}
+function confetti(){
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv=document.createElement("canvas");cv.className="confetti";document.body.appendChild(cv);
+  const W=cv.width=innerWidth,H=cv.height=innerHeight,ctx=cv.getContext("2d");
+  const cols=["#dcb76c","#72c9a0","#e2625a","#8fb4ff","#c9a2ff"];
+  const ps=Array.from({length:90},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*9-3,r:Math.random()*6+3,c:cols[rnd(cols.length)],a:Math.random()*6}));
+  let t=0;(function f(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.28;p.a+=.15;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);ctx.restore()});
+    if(++t<110) requestAnimationFrame(f); else cv.remove()})();
+}
+
+/* ----- rounds ----- */
+function buildRound(c,level,originals){
+  if(originals&&c.puzzles) return c.puzzles;
+  if(c.gen){const r=[];let guard=0;while(r.length<6&&guard++<60){const g=GENS[c.gen](level);if(g)r.push(g)}return r}
+  const tagged=[].concat((c.puzzles||[]).map(p=>({...p,lvl:1})),(c.extra||[]).map(p=>({...p,lvl:2})),(c.exam||[]).map(p=>({...p,lvl:3})),c.bank||[]);
+  const same=shuffle(tagged.filter(p=>p.lvl===level)), lower=shuffle(tagged.filter(p=>p.lvl<level));
+  return shuffle(same.concat(lower).slice(0,6));
+}
+
+const app=document.getElementById("app");
+const L="ABCD";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function render(stay){
+  const y=window.scrollY; setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
+  ({home,brief,puzzle,end:endView,accuse})[state.view]();
+}
+function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
+
+/* ----- home ----- */
+function home(){
+  const run=loadRun();
+  const folder=c=>{const i=CASES.indexOf(c),p=progress[c.id],ul=unlockedLevel(c);
+    return `<button class="folder" data-tab="${c.tab}" data-i="${i}">
+      ${p?`<span class="stamp">SOLVED</span>`:""}
+      <h2>${esc(c.title)}</h2><p>${esc(c.blurb)}</p>
+      <div class="meta"><span class="lvls">${[1,2,3].map(l=>`<span class="lv ${l<=ul?"open":""}">${l<=ul?"":"🔒"}L${l}</span>`).join("")}</span><span>${p?`🔍 ${casePts(c)}`:"Not started"}</span></div>
+    </button>`};
+  const mystery=(m,mi)=>{const cs=m.cases.map(caseById);
+    return `<section class="mystery">
+    <div class="card story"><p class="label">Mystery ${mi+1}${progress[m.key]?" · solved 🏆":""}</p><h2>${esc(m.title)}</h2><p>${esc(m.intro)}</p>
+      <div class="evid">${cs.map((c,i)=>progress[c.id]
+        ?`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(c.evidence)}</p></div>`
+        :`<div class="ev-card"><span class="label">Evidence ${i+1}</span><p>🔒 Solve ${c.tab} to unlock</p></div>`).join("")}</div>
+      <div class="row">${solvedAll(m)?`<button class="btn" data-acc="${mi}">${progress[m.key]?"🏆 See the thief again":"🕵️ Name the thief!"}</button>`
+        :`<span class="hint">${cs.filter(c=>progress[c.id]).length} of ${cs.length} pieces of evidence found</span>`}</div></div>
+    <div class="folders">${cs.map(folder).join("")}</div></section>`};
+  app.innerHTML=`
+  <header class="top"><div><p class="label">Critical thinking detective school</p><h1>Clue Crackers</h1></div>
+    <div class="badge"><span class="label">Your rank</span><b>${rank()}${playerName?" "+esc(playerName):""}</b><span>🔍 ${totalPoints()} / ${maxPoints()} magnifiers</span>
+    <div class="toolbar"><button class="btn ghost mini" id="mode">${mode==="light"?"🌙 Dark mode":"☀️ Light mode"}</button>
+    <button class="btn ghost mini" id="snd">${soundOn?"🔊 Sound on":"🔈 Sound off"}</button></div></div></header>
+  ${playerName?"":`<section class="card"><p class="label">New recruit</p><h3>What's your detective name?</h3>
+    <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
+  ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · ${LEVELS[run.level||1].tag} · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
+    <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
+  ${MYSTERIES.map(mystery).join("")}
+  <div class="grownups"><p class="label">💾 Save code</p>
+  <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
+    <textarea id="bcode" hidden aria-label="Backup code"></textarea>
+    <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
+  app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{const ci=+b.dataset.i;state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()});
+  app.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>{state={view:"accuse",mi:+b.dataset.acc,wrong:[]};render()});
+  document.getElementById("mode").onclick=()=>{mode=mode==="light"?"dark":"light";ls.set(KEY+"-mode",mode);applyMode();render(true)};
+  document.getElementById("snd").onclick=()=>{soundOn=!soundOn;ls.set(KEY+"-sound",soundOn?"1":"0");chime(true);render(true)};
+  const nf=document.getElementById("nameform"); if(nf) nf.onsubmit=e=>{e.preventDefault();const v=document.getElementById("pname").value.trim();if(v){playerName=v;ls.set(KEY+"-name",v);save();render(true)}};
+  const rn=document.getElementById("rename"); if(rn) rn.onclick=()=>{playerName="";ls.del(KEY+"-name");render()};
+  const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{state=Object.assign({view:"puzzle"},run,{level:run.level||1});newPuzzle();if(run.solved&&run.pi<run.round.length-1)state.pi++;render()};
+  const dr=document.getElementById("drop"); if(dr) dr.onclick=()=>{clearRun();render(true)};
+  const bcode=document.getElementById("bcode"), bmsg=document.getElementById("bmsg");
+  const code=()=>btoa(unescape(encodeURIComponent(JSON.stringify({progress,name:playerName,run:loadRun()}))));
+  document.getElementById("copyb").onclick=()=>{const c=code();bcode.hidden=false;bcode.value=c;document.getElementById("rrow").hidden=true;
+    try{navigator.clipboard.writeText(c).catch(()=>bcode.select())}catch(e){bcode.select()}};
+  document.getElementById("showr").onclick=()=>{bcode.hidden=false;bcode.value="";bcode.placeholder="Paste a backup code here";document.getElementById("rrow").hidden=false;bcode.focus()};
+  document.getElementById("dorestore").onclick=()=>{try{const d=JSON.parse(decodeURIComponent(escape(atob(bcode.value.trim()))));
+      if(!d||typeof d.progress!=="object") throw 0; progress=mergeProg(progress,d.progress); save();
+      if(d.name){playerName=d.name;ls.set(KEY+"-name",d.name)} if(d.run) ls.set(KEY+"-run",JSON.stringify(d.run)); render();
+    }catch(e){bmsg.textContent="That code didn't work. Check you copied all of it."}};
+}
+
+/* ----- briefing with level picker ----- */
+function brief(){
+  const c=CASES[state.ci], ul=unlockedLevel(c), first=!progress[c.id]&&c.puzzles;
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">${c.tab} · Briefing</p><h2>${esc(c.title)}</h2>
+    <p class="label">The detective's rule — say it out loud</p>
+    <div class="rule">${esc(c.rule)}</div>
+    <h3>How a good detective does it</h3>
+    <ol class="steps">${c.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+    <p class="from-test">${esc(c.fromTest)}</p>
+    ${first?`<div class="row"><button class="btn" id="orig">Open the case</button></div>`:`
+    <p class="label">Choose your level</p>
+    <div class="levels">${[1,2,3].map(l=>`<button class="lvbtn ${state.level===l?"on":""}" data-l="${l}" ${l>ul?"disabled":""}>
+      <b>${l>ul?"🔒 ":""}${LEVELS[l].tag}</b><span>${LEVELS[l].name}</span><small>${l>ul?`Score ${UNLOCK}+ 🔍 at Level ${l-1} to unlock`:`Best: ${lvPts(c,l)} 🔍`}</small></button>`).join("")}</div>
+    <div class="row"><button class="btn" id="go">🎲 Start ${LEVELS[state.level].tag}</button>${c.puzzles?`<button class="btn ghost" id="orig">Replay the originals</button>`:""}</div>
+    <p class="hint">${c.gen?"New puzzles are made up fresh every time, and checked by a solver — there's no end to them!":"Each round picks a mix of 6 from the puzzle bank."}</p>`}
+  </section>`;
+  back();
+  app.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{state.level=+b.dataset.l;render(true)});
+  const go=document.getElementById("go"); if(go) go.onclick=()=>startCase(state.ci,state.level,false);
+  const og=document.getElementById("orig"); if(og) og.onclick=()=>startCase(state.ci,1,true);
+}
+function startCase(ci,level,originals){state={view:"puzzle",ci,level,pi:0,results:[],pts:0,streak:0,round:buildRound(CASES[ci],level,originals)};newPuzzle();render()}
+function newPuzzle(){Object.assign(state,{tries:0,shown:0,picked:[],solved:false,boards:null,marks:null})}
+
+/* ----- puzzle ----- */
+function npIndex(p){if(!p.board||p.board.type==="grid")return -1;return p.opts.findIndex(o=>/not possible to tell/i.test(o))}
+function puzzle(){
+  saveRun();
+  const c=CASES[state.ci], R=state.round, p=R[state.pi];
+  const dots=R.map((_,i)=>{const r=state.results[i];return `<span class="dot ${r===true?"done":r===false?"miss":""} ${i===state.pi?"now":""}"></span>`}).join("");
+  const last=state.picked[state.picked.length-1];
+  const recap=npIndex(p)>=0?`<p class="recap">🚨 <b>Trap alert reminder:</b> when “not possible to tell” is an option, don't stop at your first arrangement. <b>List</b> every place the most restricted person (or pair) could go, <b>place</b> everyone else, then <b>tick ✅ or cross ❌</b> each one. One ✅ = that's your answer. Two ✅ that give different answers = not possible to tell.</p>`:"";
+  const nextBtn=`<div class="row"><button class="btn" id="next">${state.pi<R.length-1?"Next puzzle →":"Close the case →"}</button></div>`;
+  let fb="";
+  if(state.solved) fb=`<div class="fb good"><div class="row" style="justify-content:space-between"><strong class="pop-in">${state.praise}</strong><span class="gain">+${state.gain} 🔍</span></div>${state.streak>=2?`<p class="streak">🔥 ${state.streak} in a row!</p>`:""}<p>${esc(p.explain)}</p>${recap}</div>${nextBtn}`;
+  else if(state.tries===1) fb=`<div class="fb bad"><strong>Not quite — check this</strong><p>${esc(p.why[last]||"")}</p><p>Look at a clue below, then try again.</p></div>`;
+  else if(state.tries>=2) fb=`<div class="fb bad"><strong>The answer is ${L[p.a]}</strong><p>${esc(p.why[last]||"")}</p><p>${esc(p.explain)}</p>${recap}</div>${nextBtn}`;
+  const locked=state.solved||state.tries>=2;
+  app.innerHTML=`
+  <div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← All cases</button><div class="row" style="gap:14px"><span class="pts">🔍 ${state.pts}</span><div class="dots">${dots}</div></div></div>
+  <section class="card">
+    <p class="label">${c.tab} · ${LEVELS[state.level].tag} · Puzzle ${state.pi+1} of ${R.length}</p>
+    <div class="rule" style="font-size:1rem">${esc(c.rule)}</div>
+    <div class="q">${p.q}</div>
+    ${npIndex(p)>=0&&!state.solved?`<div class="alert" role="note"><span class="t">🚨 Trap alert: “not possible to tell”</span><p>Found one arrangement? Don't stop yet!</p><ol><li><b>List</b> every place the most restricted person (or pair) could go.</li><li><b>Place</b> everyone else and check every clue.</li><li><b>Tick ✅ or cross ❌</b> each arrangement.</li></ol><p>One ✅ = that's your answer. Two ✅ that give different answers = <b>not possible to tell</b>.</p></div>`:""}
+    ${p.board?boardHTML(p.board,p):""}
+    <div class="opts">${p.opts.map((o,i)=>{const cls=(locked&&i===p.a)?"right":state.picked.includes(i)?"wrong":"";
+      return `<button class="opt ${cls}" data-i="${i}" ${locked||state.picked.includes(i)?"disabled":""}><b>${L[i]}</b><span>${esc(o)}</span></button>`}).join("")}</div>
+    ${fb}
+    <div class="clues">${p.clues.slice(0,state.shown).map((t,i)=>`<div class="clue"><span class="label">Clue ${i+1}</span><br>${esc(t)}</div>`).join("")}</div>
+    ${state.shown<p.clues.length&&!locked?`<div class="row"><button class="btn ghost" id="clue">Need a clue? (${p.clues.length-state.shown} left)</button></div>`:""}
+  </section>`;
+  back();
+  app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+  const cl=document.getElementById("clue"); if(cl) cl.onclick=()=>{state.shown++;render(true)};
+  const nx=document.getElementById("next"); if(nx) nx.onclick=next;
+  if(p.board) wireBoard(p.board);
+}
+function choose(i){
+  const p=state.round[state.pi];
+  state.tries++; state.picked.push(i);
+  if(i===p.a){state.solved=true;state.gain=state.tries===1?(state.shown===0?3:2):1;state.pts+=state.gain;
+    state.streak=state.tries===1?state.streak+1:0;state.praise=PRAISE[rnd(PRAISE.length)];confetti();chime(true)}
+  else{if(state.tries>=2)state.streak=0;if(state.tries===1&&state.shown===0)state.shown=1;chime(false)}
+  if(state.results[state.pi]===undefined&&(state.solved||state.tries>=2)) state.results[state.pi]=(state.solved&&state.tries===1);
+  render(true);
+}
+function next(){
+  const c=CASES[state.ci];
+  if(state.pi<state.round.length-1){state.pi++;newPuzzle();render();return}
+  const score=state.results.filter(Boolean).length, prev=progress[c.id], before=unlockedLevel(c);
+  const lv=Object.assign({},prev&&prev.lv?prev.lv:{1:prev&&prev.points||0});
+  lv[state.level]=Math.max(lv[state.level]||0,state.pts);
+  state.firstSolve=!prev;
+  progress[c.id]={best:Math.max(score,prev?prev.best||0:0),points:lv[1]||0,lv};
+  state.newLevel=unlockedLevel(c)>before?unlockedLevel(c):0;
+  save(); clearRun(); confetti(); chime(true);
+  state.view="end"; state.score=score; render();
+}
+function endView(){
+  const c=CASES[state.ci], m=mysteryOf(c), n=state.round.length, s=state.score, ei=m.cases.indexOf(c.id);
+  const msg=s===n?"Perfect detective work!":s>=n-2?"Great work, detective.":"Good effort — every case gets easier the second time.";
+  app.innerHTML=`
+  <section class="card end">
+    <p class="label">${c.tab} · ${LEVELS[state.level].tag}</p><h2>${esc(c.title)}</h2>
+    <span class="stamp pop">CASE CLOSED</span>
+    <p class="stars">🔍 ${state.pts} magnifiers · ${s} / ${n} first try</p>
+    <p>${msg} Rank: <b>${rank()}</b></p>
+    ${state.newLevel?`<p class="unlocked">🔓 ${LEVELS[state.newLevel].tag} (${LEVELS[state.newLevel].name}) unlocked!</p>`:(state.level<3&&state.pts<UNLOCK?`<p class="hint">Score ${UNLOCK}+ 🔍 in one round to unlock ${LEVELS[state.level+1].tag}.</p>`:"")}
+    <div class="ev-card open unlock"><span class="label">${state.firstSolve?"New evidence unlocked!":"Evidence"} · ${esc(m.title)} · Evidence ${ei+1}</span><p>${esc(c.evidence)}</p></div>
+    ${solvedAll(m)&&!progress[m.key]?`<button class="btn" id="acc2">🕵️ You have all the evidence — name the thief!</button>`:""}
+    <div class="row" style="justify-content:center"><button class="btn" id="home">Back to the case files</button><button class="btn ghost" id="again">🎲 Play again</button></div>
+  </section>`;
+  document.getElementById("home").onclick=()=>{state={view:"home"};render()};
+  document.getElementById("again").onclick=()=>{state={view:"brief",ci:state.ci,level:unlockedLevel(c)};render()};
+  const a2=document.getElementById("acc2"); if(a2) a2.onclick=()=>{state={view:"accuse",mi:MYSTERIES.indexOf(m),wrong:[]};render()};
+}
+
+/* ----- final accusation ----- */
+function accuse(){
+  const m=MYSTERIES[state.mi], caught=state.caught||progress[m.key];
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">Mystery ${state.mi+1} · Final case</p><h2>Who did it?</h2>
+    <p>Use all the evidence to rule suspects out. Only one person fits every clue.</p>
+    <div class="evid">${m.cases.map((id,i)=>`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(caseById(id).evidence)}</p></div>`).join("")}</div>
+    <div class="suspects">${m.suspects.map((p,i)=>{const out=state.wrong.includes(i), win=caught&&i===m.thief;
+      return `<button class="suspect ${out?"out":""} ${win?"win":""}" data-i="${i}" ${out||caught?"disabled":""}>
+        <span class="face">${p.face}</span><b>${p.name}</b><small>${p.role}</small>
+        <span class="chips">${m.traits.map(([k,y,nn])=>`<span class="chip">${p[k]?y:nn}</span>`).join("")}</span>
+        ${out?`<span class="stamp">ALIBI</span>`:""}${win?`<span class="stamp">GUILTY</span>`:""}</button>`}).join("")}</div>
+    ${state.msg?`<div class="fb bad"><strong>Not them!</strong><p>${esc(state.msg)}</p></div>`:""}
+    ${caught?`<div class="fb good"><strong>Case closed!</strong><p>${esc(m.win)}</p></div>`:""}
+  </section>`;
+  back();
+  app.querySelectorAll(".suspect").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;
+    if(i===m.thief){state.caught=true;state.msg="";progress[m.key]=true;save();confetti();setTimeout(confetti,400);chime(true)}
+    else{state.wrong.push(i);state.msg=m.suspects[i].alibi;chime(false)}
+    render(true)});
+}
+
+/* ----- scratch boards: rows, circles and grids ----- */
+function boardHTML(b,p){
+  if(b.type==="grid") return gridHTML(b);
+  const n=b.names.length, k=npIndex(p);
+  if(!state.boards){state.boards=[Array(n).fill(-1)];state.marks=[null]}
+  const seatBtn=(a,i,label)=>{const v=state.boards[a][i];
+    return `<button class="seat ${v>=0?"filled":""}" data-a="${a}" data-s="${i}" aria-label="Arrangement ${a+1}, ${label}: ${v>=0?b.names[v]:"empty"}">${v>=0?esc(b.names[v]):"?"}<small>${label}</small></button>`};
+  const one=a=>{let inner="";
+    if(b.type==="row"){const labels=b.labels||b.names.map((_,i)=>"Seat "+(i+1));
+      inner=`<div class="seats-row" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${labels.map((l,i)=>seatBtn(a,i,l)).join("")}</div>${b.ends===false?"":`<div class="ends"><span>← left</span><span>right →</span></div>`}`;
+    } else {const r=38;let seats="",arrows="";
+      for(let i=0;i<n;i++){const ang=Math.PI/2+i*2*Math.PI/n,x=50+r*Math.cos(ang),y=50+r*Math.sin(ang);
+        arrows+=`<line x1="${50+24*Math.cos(ang)}" y1="${50+24*Math.sin(ang)}" x2="${50+14*Math.cos(ang)}" y2="${50+14*Math.sin(ang)}" stroke="var(--muted)" stroke-width="1" marker-end="url(#ah${a})"/>`;
+        seats+=`<div style="position:absolute;left:${x}%;top:${y}%">${seatBtn(a,i,i===0?"bottom":"seat")}</div>`}
+      inner=`<div class="circle-box"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="ah${a}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 z" fill="var(--muted)"/></marker></defs>
+        <circle cx="50" cy="50" r="27" fill="none" stroke="var(--line)" stroke-width="1"/>${arrows}</svg>${seats}</div><div class="ends"><span>← bottom person's left</span><span>bottom person's right →</span></div>`}
     const m=state.marks[a];
-    return `<div class="arr ${m||""}"><div class="row" style="justify-content:space-between">
-        <span class="label">Arrangement ${a+1}${m==="ok"?" ✅":m==="no"?" ❌":""}</span>
-        <div class="row" style="gap:6px">
-          <button class="btn ghost mini ${m==="ok"?"on":""}" data-mark="ok" data-a="${a}" aria-label="Arrangement ${a+1} fits every clue">✅ Fits</button>
-          <button class="btn ghost mini ${m==="no"?"on":""}" data-mark="no" data-a="${a}" aria-label="Arrangement ${a+1} breaks a clue">❌ Breaks a clue</button>
-          ${a>0?`<button class="btn ghost mini" data-del="${a}" aria-label="Remove arrangement ${a+1}">Remove</button>`:`<button class="btn ghost mini" data-clr="0">Clear</button>`}
-        </div></div>${inner}</div>`;
-  };
+    return `<div class="arr ${m||""}"><div class="row" style="justify-content:space-between"><span class="label">Arrangement ${a+1}${m==="ok"?" ✅":m==="no"?" ❌":""}</span>
+      <div class="row" style="gap:6px"><button class="btn ghost mini ${m==="ok"?"on":""}" data-mark="ok" data-a="${a}">✅ Fits</button><button class="btn ghost mini ${m==="no"?"on":""}" data-mark="no" data-a="${a}">❌ Breaks a clue</button>
+      ${a>0?`<button class="btn ghost mini" data-del="${a}">Remove</button>`:`<button class="btn ghost mini" data-clr="0">Clear</button>`}</div></div>${inner}</div>`};
   const ticks=state.marks.filter(x=>x==="ok").length;
   return `<div class="board"><span class="label">Scratch board</span>
-    <p class="hint">Tap a seat to cycle through the names. ${b.type==="circle"?"Everyone faces the middle (arrows). For the person at the bottom, their left is your left.":"Fill in the fixed facts first."}</p>
+    <p class="hint">Tap a box to cycle through the names. ${b.type==="circle"?"Everyone faces the middle (arrows). For the person at the bottom, their left is your left.":"Fill in the fixed facts first."}</p>
     ${k>=0?`<p class="np-hint">🔎 Option ${L[k]} says “not possible to tell”. <b>Will there be another arrangement?</b> Use “+ Try another arrangement” to check.</p>`:""}
     ${state.boards.map((_,a)=>one(a)).join("")}
-    <div class="row" style="justify-content:space-between">
-      ${state.boards.length<4?`<button class="btn ghost" id="addArr">+ Try another arrangement</button>`:"<span></span>"}
-      ${ticks>=2?`<span class="hint">${ticks} arrangements fit. Do they give the same answer? If not → not possible to tell.</span>`:""}
-    </div></div>`;
+    <div class="row" style="justify-content:space-between">${state.boards.length<4?`<button class="btn ghost" id="addArr">+ Try another arrangement</button>`:"<span></span>"}
+      ${ticks>=2?`<span class="hint">${ticks} arrangements fit. Do they give the same answer? If not → not possible to tell.</span>`:""}</div></div>`;
+}
+function gridHTML(b){
+  const R=b.rows.length, C=b.cols.length;
+  if(!state.boards){state.boards=[Array(R*C).fill(0)];state.marks=[null]}
+  const g=state.boards[0], colLab=c=>typeof c==="string"?c:c.v.replace(/^(a|an) /,"");
+  const groups=typeof b.cols[0]==="string"?null:b.cols.reduce((a,c)=>{if(!a.length||a[a.length-1].g!==c.g)a.push({g:c.g,n:0});a[a.length-1].n++;return a},[]);
+  let h=`<div class="scroll"><table class="lgrid">`;
+  if(groups) h+=`<tr><th></th>${groups.map(x=>`<th colspan="${x.n}" class="grp">${esc(x.g)}</th>`).join("")}${b.countF?"<th></th>":""}</tr>`;
+  h+=`<tr><th></th>${b.cols.map(c=>`<th class="ch"><span>${esc(colLab(c))}</span></th>`).join("")}${b.countF?`<th class="ch"><span>Lies</span></th>`:""}</tr>`;
+  for(let r=0;r<R;r++){
+    h+=`<tr><th class="rh">${esc(b.rows[r])}</th>`;
+    for(let c=0;c<C;c++){const v=b.values[g[r*C+c]];h+=`<td><button class="cell v${g[r*C+c]}" data-cell="${r*C+c}" aria-label="${esc(b.rows[r])}, ${esc(colLab(b.cols[c]))}: ${v||"empty"}">${v}</button></td>`}
+    if(b.countF){const f=b.cols.reduce((t,_,c)=>t+(b.values[g[r*C+c]]==="F"?1:0),0);h+=`<td class="cnt">${f}</td>`}
+    h+=`</tr>`;
+  }
+  h+=`</table></div>`;
+  return `<div class="board"><div class="row" style="justify-content:space-between"><span class="label">${esc(b.title||"Scratch grid")}</span><button class="btn ghost mini" data-clr="0">Clear</button></div>
+    <p class="hint">Tap a box to cycle: ${b.values.slice(1).join(" → ")} → empty.${b.countF?" The last column counts the lies (F) in each row.":""}</p>${h}</div>`;
 }
 function wireBoard(b){
+  if(b.type==="grid"){
+    app.querySelectorAll("[data-cell]").forEach(btn=>btn.onclick=()=>{const i=+btn.dataset.cell;state.boards[0][i]=(state.boards[0][i]+1)%b.values.length;render(true)});
+    app.querySelectorAll("[data-clr]").forEach(btn=>btn.onclick=()=>{state.boards[0]=state.boards[0].map(()=>0);render(true)});
+    return;
+  }
   const n=b.names.length;
-  app.querySelectorAll(".seat").forEach(btn=>btn.onclick=()=>{
-    const a=+btn.dataset.a, i=+btn.dataset.s; let v=state.boards[a][i]+1; if(v>=n) v=-1;
-    state.boards[a][i]=v; render(true);
-  });
-  app.querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=()=>{
-    const a=+btn.dataset.a, m=btn.dataset.mark; state.marks[a]=state.marks[a]===m?null:m; render(true)});
-  app.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=()=>{
-    const a=+btn.dataset.del; state.boards.splice(a,1); state.marks.splice(a,1); render(true)});
+  app.querySelectorAll(".seat").forEach(btn=>btn.onclick=()=>{const a=+btn.dataset.a,i=+btn.dataset.s;let v=state.boards[a][i]+1;if(v>=n)v=-1;state.boards[a][i]=v;render(true)});
+  app.querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=()=>{const a=+btn.dataset.a,m=btn.dataset.mark;state.marks[a]=state.marks[a]===m?null:m;render(true)});
+  app.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=()=>{const a=+btn.dataset.del;state.boards.splice(a,1);state.marks.splice(a,1);render(true)});
   app.querySelectorAll("[data-clr]").forEach(btn=>btn.onclick=()=>{state.boards[0]=Array(n).fill(-1);state.marks[0]=null;render(true)});
   const add=document.getElementById("addArr"); if(add) add.onclick=()=>{state.boards.push(Array(n).fill(-1));state.marks.push(null);render(true)};
 }
 
+/* a link like …?restore=CODE loads a save code once */
+(function(){try{const q=new URLSearchParams(location.search).get("restore");if(!q)return;
+  const d=JSON.parse(decodeURIComponent(escape(atob(q.trim()))));
+  if(d&&typeof d.progress==="object"){progress=mergeProg(progress,d.progress);save();
+    if(d.name&&!playerName){playerName=d.name;ls.set(KEY+"-name",d.name)}
+    if(d.run&&!loadRun()) ls.set(KEY+"-run",JSON.stringify(d.run));}
+  history.replaceState(null,"",location.pathname);}catch(e){}})();
 render();
+cloudInit();
 </script>
 </body>
 </html>
