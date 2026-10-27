@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Clue Crackers: detective-themed practice for 11+ critical thinking: seating puzzles, must-be-true logic and argument questions.">
+<title>Clue Crackers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: a detective's desk — one column of case folders; each case opens to a briefing, then one puzzle card at a time. Dark by default, with a light mode toggle. */
+:root{
+  --ink:#131a26;      /* desk background */
+  --desk:#1b2434;     /* card surface */
+  --raised:#243046;   /* buttons, inputs */
+  --line:#34425c;
+  --manila:#dcb76c;   /* folder accent */
+  --manila-ink:#2a2010;
+  --btn:#dcb76c;      /* main buttons, folder tabs */
+  --btn-ink:#2a2010;
+  --fg:#ece7da;
+  --muted:#a3acbe;
+  --stamp:#e2625a;    /* wrong / stamp */
+  --ok:#72c9a0;       /* correct */
+  --font-display:"Special Elite","Courier New",monospace;
+  --font-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+:root.light{
+  --ink:#e9edf4; --desk:#ffffff; --raised:#eef1f7; --line:#c5cddc;
+  --manila:#8a5a08; --manila-ink:#2a2010; --btn:#e2b85c; --btn-ink:#2a2010;
+  --fg:#1c2433; --muted:#5a6477; --stamp:#c0392b; --ok:#1d8656;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--ink);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:2rem;color:var(--manila)}
+h2{font-size:1.5rem}
+h3{font-size:1.15rem;color:var(--manila)}
+p{margin:0}
+.label{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--manila);outline-offset:2px}
+.btn{background:var(--btn);color:var(--btn-ink);border:0;border-radius:8px;padding:12px 20px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+header.top p{color:var(--muted)}
+
+/* folders */
+.folders{display:grid;gap:16px}
+.folder{position:relative;text-align:left;background:var(--desk);border:1.5px solid var(--line);border-radius:4px 12px 12px 12px;padding:22px 20px 18px;display:grid;gap:6px}
+.folder::before{content:attr(data-tab);position:absolute;top:-14px;left:-1.5px;background:var(--btn);color:var(--btn-ink);font-family:var(--font-display);font-size:.8rem;padding:2px 14px 0;border-radius:6px 6px 0 0}
+.folder:hover{border-color:var(--manila)}
+.folder .meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.stamp{font-family:var(--font-display);color:var(--stamp);border:2.5px solid var(--stamp);border-radius:6px;padding:2px 10px;transform:rotate(-6deg);display:inline-block;letter-spacing:.08em}
+.folder .stamp{position:absolute;right:16px;top:14px}
+
+/* briefing */
+.card{background:var(--desk);border:1.5px solid var(--line);border-radius:12px;padding:22px 20px;display:grid;gap:14px;min-width:0}
+.rule{font-family:var(--font-display);font-size:1.3rem;color:var(--manila);border:1.5px dashed var(--manila);border-radius:8px;padding:12px 14px;text-align:center}
+ol.steps{margin:0;padding-left:1.3em;display:grid;gap:8px}
+.from-test{color:var(--muted);font-size:.92rem}
+
+/* puzzle */
+.dots{display:flex;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dot.done{background:var(--ok)}
+.dot.miss{background:var(--stamp)}
+.dot.now{outline:2px solid var(--manila);outline-offset:2px}
+.q{display:grid;gap:8px}
+.q ul{margin:0;padding-left:1.2em}
+.q .ask{font-weight:700}
+table.ev{border-collapse:collapse;margin-top:4px}
+table.ev th,table.ev td{border:1px solid var(--line);padding:6px 12px;text-align:center}
+table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
+.scroll{overflow-x:auto}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--raised);border:1.5px solid transparent;border-radius:8px;padding:12px 14px}
+.opt b{font-family:var(--font-display);color:var(--manila);min-width:1.2em}
+.opt:hover:not(:disabled){border-color:var(--manila)}
+.opt.right{border-color:var(--ok)}
+.opt.wrong{border-color:var(--stamp);opacity:.75}
+.opt:disabled{cursor:default}
+.clues{display:grid;gap:8px}
+.alert{border:2px solid var(--stamp);border-radius:10px;padding:12px 14px;display:grid;gap:6px;background:color-mix(in srgb,var(--stamp) 10%,var(--desk))}
+.alert .t{font-family:var(--font-display);color:var(--stamp);font-size:1.1rem;letter-spacing:.04em}
+.alert ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.arr{border:1.5px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:8px}
+.arr.ok{border-color:var(--ok)}
+.arr.no{border-color:var(--stamp);opacity:.8}
+.mini{padding:4px 10px;font-size:.82rem;font-weight:400}
+.mini.on{border-color:var(--manila);color:var(--manila)}
+.np-hint{background:color-mix(in srgb,var(--manila) 14%,var(--desk));border-radius:6px;padding:8px 12px}
+.recap{border-top:1px dashed var(--line);padding-top:8px}
+.badge{display:grid;gap:2px;justify-items:end;text-align:right}
+.badge b{font-family:var(--font-display);font-weight:400;font-size:1.2rem;color:var(--manila)}
+.badge span:not(.label){color:var(--muted);font-size:.9rem}
+.story h2{color:var(--fg)}
+.evid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.ev-card{border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px;color:var(--muted);min-width:0}
+.ev-card.open{border-style:solid;border-color:var(--manila);color:var(--fg);background:color-mix(in srgb,var(--manila) 8%,var(--desk))}
+.ev-card.unlock{text-align:left;max-width:420px}
+.hint{color:var(--muted);font-size:.9rem}
+.pts{font-weight:700;color:var(--manila)}
+.gain{font-weight:700;color:var(--ok)}
+.streak{color:var(--manila);font-weight:700}
+.suspects{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.suspect{position:relative;background:var(--raised);border:1.5px solid var(--line);border-radius:10px;padding:14px 10px;display:grid;gap:4px;justify-items:center;text-align:center}
+.suspect:hover:not(:disabled){border-color:var(--manila)}
+.suspect .face{font-size:2.2rem;line-height:1}
+.suspect small{color:var(--muted)}
+.suspect .chips{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px}
+.chip{font-size:.72rem;border:1px solid var(--line);border-radius:99px;padding:1px 8px;color:var(--muted)}
+.suspect.out{opacity:.55}
+.suspect.win{border-color:var(--ok)}
+.suspect .stamp{position:absolute;top:10px;right:6px;font-size:.8rem;background:var(--desk)}
+.suspect.win .stamp{color:var(--ok);border-color:var(--ok)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+@media (prefers-reduced-motion:no-preference){.pop-in{display:inline-block;animation:popin .4s ease-out}@keyframes popin{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+.ev-card.unlock{animation:glow 1.2s ease-out}@keyframes glow{from{box-shadow:0 0 0 6px color-mix(in srgb,var(--manila) 50%,transparent)}to{box-shadow:0 0 0 0 transparent}}}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.resume{border:2px solid var(--btn);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:color-mix(in srgb,var(--btn) 12%,var(--desk))}
+.namebox{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.namebox input,.backup textarea{font:inherit;color:var(--fg);background:var(--raised);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;min-width:0}
+.namebox input{flex:1 1 160px}
+.backup{display:grid;gap:8px}
+.backup textarea{width:100%;min-height:70px;font-size:.8rem;font-family:ui-monospace,Menlo,monospace}
+.small{font-size:.85rem}
+.clue{background:color-mix(in srgb,var(--manila) 12%,var(--desk));border-left:3px solid var(--manila);border-radius:4px;padding:8px 12px}
+.fb{border-radius:8px;padding:14px;display:grid;gap:8px}
+.fb.good{background:color-mix(in srgb,var(--ok) 14%,var(--desk));border:1.5px solid var(--ok)}
+.fb.bad{background:color-mix(in srgb,var(--stamp) 14%,var(--desk));border:1.5px solid var(--stamp)}
+.fb strong{font-family:var(--font-display);font-weight:400;font-size:1.1rem}
+
+/* scratch board */
+.board{border:1.5px dashed var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.board .hint{color:var(--muted);font-size:.88rem}
+.seats-row{display:grid;gap:8px}
+.seat{background:var(--raised);border:1.5px solid var(--line);border-radius:8px;min-height:58px;padding:6px 4px;display:grid;place-items:center;font-weight:700;font-size:.95rem}
+.seat small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+.seat.filled{border-color:var(--manila);color:var(--manila)}
+.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem}
+.circle-box{position:relative;width:min(100%,300px);aspect-ratio:1;max-width:100%;margin:0 auto}
+.circle-box svg{position:absolute;inset:0;width:100%;height:100%}
+.circle-box .seat{position:absolute;width:78px;min-height:48px;transform:translate(-50%,-50%)}
+
+.end{text-align:center;justify-items:center}
+.end .stamp{font-size:1.8rem;margin:6px 0}
+.stars{font-family:var(--font-display);font-size:1.3rem;color:var(--manila)}
+.grownups{color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px;display:grid;gap:6px}
+@media (prefers-reduced-motion:no-preference){.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-6deg) scale(1.6);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const CASES = [
+{
+  id:"seats", tab:"CASE 1", title:"The Seating Plan Mysteries",
+  blurb:"Who sits where? Rows, round tables and race results.",
+  rule:"Draw it. Check left and right. Use every “not”.",
+  steps:[
+    "Draw the seats first: a numbered row, or a circle with everyone facing the middle.",
+    "Put the fixed facts in first (“Dot is at the end”).",
+    "Try every possibility for the rest — don't stop at the first one that works.",
+    "If two arrangements both fit and give different answers, the answer is “not possible to tell”.",
+    "🚨 Trap alert: if you see “not possible to tell” in the answers, STOP after your first arrangement and hunt for a second one. List every place the most restricted person (or pair) could go, tick ✅ or cross ❌ each one, then count the ticks.",
+    "Left and right in a circle: turn the page so the person is at the bottom. Now their left is your left. A person at the top faces you, so their left is on your right."
+  ],
+  fromTest:"From your test: Q9, Q10, Q15, Q23, Q25, Q31.",
+  evidence:"A witness saw the thief sitting in the BACK ROW at rehearsal.",
+  puzzles:[
+    {board:{type:"row",names:["Amir","Bea","Cal","Dot"]},
+     q:`<p>Amir, Bea, Cal and Dot sit in a row of four seats, numbered 1 to 4 from left to right. They all face the same way as you, so their left is your left.</p>
+        <ul><li>Dot sits at the right-hand end.</li><li>Amir sits next to Dot, on Dot's left.</li><li>Bea is not next to Amir.</li></ul>
+        <p class="ask">Who is in seat 2?</p>`,
+     opts:["Amir","Bea","Cal","It is not possible to tell"], a:2,
+     clues:["Fixed fact first: Dot is in seat 4.","Amir is next to Dot on his left, so Amir is in seat 3.","Bea can't be next to Amir, so she can't be in seat 2. Who is left?"],
+     why:["Amir is next to Dot, so he's in seat 3.","Seat 2 is next to Amir, and Bea is NOT next to Amir.",null,"Every clue fixes a seat, so there's only one arrangement. We can tell."],
+     explain:"Bea, Cal, Amir, Dot. The “not” clue about Bea is what decides seat 2."},
+    {board:{type:"row",names:["Ella","Finn","Gus","Hana"]},
+     q:`<p>Ella, Finn, Gus and Hana sit side by side in a row, all facing the same way as you.</p>
+        <ul><li>Hana is not at either end.</li><li>Finn sits next to Ella, on Ella's left.</li></ul>
+        <p class="ask">Who is sitting on Hana's right?</p>`,
+     opts:["Finn","Gus","Ella","It is not possible to tell"], a:3,
+     clues:["Hana must be in seat 2 or seat 3. Try BOTH.","Finn and Ella sit together, with Finn on the left. Where can that pair go each time?","Arrangement 1: Gus, Hana, Finn, Ella. Arrangement 2: Finn, Ella, Hana, Gus. Who is on Hana's right in each?"],
+     why:["True for Gus, Hana, Finn, Ella — but not for Finn, Ella, Hana, Gus.","True for Finn, Ella, Hana, Gus — but not for the other arrangement.","Ella is never directly on Hana's right.",null],
+     explain:"Two arrangements both fit every clue, and they give different answers. That means it is not possible to tell. This is exactly the trap in Q10 of your test."},
+    {board:{type:"circle",names:["Ivy","Jay","Kit","Leo"]},
+     q:`<p>Ivy, Jay, Kit and Leo sit equally spaced around a round table, all facing the middle.</p>
+        <ul><li>Ivy sits opposite Jay.</li><li>Kit sits on Ivy's left.</li></ul>
+        <p class="ask">Who sits on Jay's left?</p>`,
+     opts:["Ivy","Kit","Leo","It is not possible to tell"], a:2,
+     clues:["Put Ivy at the bottom of the circle, facing up. Her left is your left.","So Kit is on the left side of the circle, and Jay is at the top.","Jay is at the top, facing DOWN towards you. His left is on YOUR right. Who sits there?"],
+     why:["Ivy is opposite Jay, not next to him.","Kit is on your left — but Jay faces you, so Kit is on Jay's RIGHT. This is the left-right trap!",null,"Once Ivy is placed, every seat is fixed."],
+     explain:"Ivy at the bottom, Kit on the left, Jay at the top, Leo on the right. Jay faces down, so his left is the right-hand side of the page: Leo."},
+    {board:{type:"circle",names:["Mo","Nia","Oli","Pip","Raj"]},
+     q:`<p>Five children — Mo, Nia, Oli, Pip and Raj — stand in a ring holding hands, all facing inwards.</p>
+        <ul><li>Mo is on Nia's right.</li><li>Oli is on Mo's right.</li><li>Pip is not next to Oli.</li></ul>
+        <p class="ask">Who is on Nia's left?</p>`,
+     opts:["Mo","Oli","Raj","Pip"], a:3,
+     clues:["Put Nia at the bottom. Her right is your right, so Mo goes just to the right of her.","Keep going round the same way: Oli goes next to Mo. Two places are left — one next to Oli, one on Nia's left.","Pip can't be next to Oli. So where must Pip go?"],
+     why:["Mo is on Nia's RIGHT, not her left.","Oli is two places away from Nia.","If Raj were on Nia's left, Pip would have to stand next to Oli — that breaks a clue.",null],
+     explain:"Going round to the right: Nia, Mo, Oli, Raj, Pip. Pip is on Nia's left. In Q31 the same left/right idea decided the answer."},
+    {board:{type:"row",names:["Sam","Tia","Uma","Vic"],labels:["1st","2nd","3rd","4th"],ends:false},
+     q:`<p>Sam, Tia, Uma and Vic ran a race. There were no ties.</p>
+        <ul><li>Tia finished ahead of Sam.</li><li>Uma finished ahead of Vic.</li><li>Sam did not come last.</li></ul>
+        <p class="ask">Which one of these <u>must</u> be true?</p>`,
+     opts:["Tia won the race.","Uma beat Sam.","Vic came last.","Sam came third."], a:2,
+     clues:["Go through each runner and ask: could they be last?","Tia beat someone, so she can't be last. Uma beat someone too. And Sam is not last.","Only one runner is left who could be last."],
+     why:["Uma could have won: Uma, Tia, Sam, Vic fits every clue.","Tia, Sam, Uma, Vic also fits, and there Sam beats Uma.",null,"Sam could be 2nd: Tia, Sam, Uma, Vic."],
+     explain:"“Must be true” means true in EVERY possible order. Vic is the only runner who can be last. Same trick as Q15, where “Graeme was not lowest” was the key."},
+    {board:{type:"row",names:["Ash","Bell","Cole","Dunn"],labels:["No. 1","No. 2","No. 3","No. 4"],ends:false},
+     q:`<p>The Ash, Bell, Cole and Dunn families live in a row of four houses, numbered 1 to 4.</p>
+        <ul><li>The Ash family live at number 1.</li><li>The Bell family live next door to the Dunn family.</li><li>The Cole family do not live next door to the Ash family.</li><li>The Dunn family live at an even-numbered house.</li></ul>
+        <p class="ask">Who lives at number 3?</p>`,
+     opts:["Bell","Cole","Dunn","It is not possible to tell"], a:0,
+     clues:["Fixed fact first: Ash at 1. Cole can't be next to Ash, so Cole isn't at 2.","If Cole were at 3, Bell and Dunn would be at 2 and 4. Would they be next door?","So Cole is at 4. Dunn must be at an even number, and 4 is taken."],
+     why:[null,"Cole at 3 would split Bell and Dunn up — they must be next door.","Dunn lives at an even number, so not 3.","The “even number” clue settles it. Use every clue before choosing “not possible”."],
+     explain:"Ash, Dunn, Bell, Cole. Every clue was needed — just like Q25 in your test."}
+  ]
+},
+{
+  id:"logic", tab:"CASE 2", title:"The Logic Locks",
+  blurb:"“Must be true”, if–then rules, and sneaky words like only, some and not.",
+  rule:"Arrows only go forwards.",
+  steps:[
+    "Write each rule as an arrow: “All choir members read music” → Choir ➜ Reads music.",
+    "Follow arrows forwards and join them into chains: A ➜ B ➜ C.",
+    "Never turn an arrow round. Reads music does NOT lead to Choir.",
+    "The backwards trick: flip it AND add “not”. Not reads music ➜ Not choir.",
+    "Circle NOT in the question. Mark each statement True or False before looking at A–D.",
+    "Watch the size words: all, some, often, only."
+  ],
+  fromTest:"From your test: Q5, Q6, Q20, Q40.",
+  evidence:"Everyone who wears glasses signed the visitors' book. The thief did NOT sign it. (Use the backwards trick!)",
+  extra:[
+    {q:`<p>“All the pupils in Class 5B have a library card.”</p><p class="ask">If this is true, which one of these <u>must</u> also be true?</p>`,
+     opts:["Ollie has a library card, so he must be in 5B.","Maya is in 5B, so she has a library card.","Everyone with a library card is in 5B.","Class 5B pupils love reading."], a:1,
+     clues:["Write it as an arrow: 5B ➜ Library card.","Follow the arrow forwards only.","Which option starts with “in 5B”?"],
+     why:["Arrow turned round. Lots of people have library cards.",null,"Arrow turned round again.","Not mentioned at all."],
+     explain:"5B ➜ Library card. Maya is in 5B, so she has one."},
+    {q:`<ul><li>Every animal in the zoo's Rainforest House is a tropical animal.</li><li>No tropical animal can live in the Polar Zone.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+     opts:["If an animal is tropical, it lives in the Rainforest House.","If an animal lives in the Rainforest House, it can't live in the Polar Zone.","If an animal can't live in the Polar Zone, it lives in the Rainforest House.","All the animals in the Polar Zone are tropical."], a:1,
+     clues:["Arrows: Rainforest House ➜ Tropical. Tropical ➜ Not Polar Zone.","Join them: Rainforest ➜ Tropical ➜ Not Polar.","Which option follows the chain forwards?"],
+     why:["Arrow turned round. Tropical animals could live elsewhere.",null,"Chain turned round.","The opposite — tropical animals can't live in the Polar Zone."],
+     explain:"Rainforest ➜ Tropical ➜ Not Polar Zone. Follow the chain forwards."},
+    {q:`<p>“Only people with a ticket can enter the concert hall.”</p><p class="ask">If this is true, which one of these <u>must</u> be true?</p>`,
+     opts:["Kim has a ticket, so she is in the concert hall.","Nobody without a ticket wants to go.","Raj is in the concert hall, so he has a ticket.","Everyone with a ticket enjoyed the concert."], a:2,
+     clues:["“Only X can do Y” means Y ➜ X.","So: In the hall ➜ Has a ticket.","Which option matches that arrow?"],
+     why:["Having a ticket lets you in — it doesn't mean you went.","Nothing is said about what people want.",null,"Nothing is said about enjoying it."],
+     explain:"In the hall ➜ Has a ticket. Raj is in the hall, so he has a ticket."},
+    {q:`<p>“The school bell rings at 9am every weekday, and never at weekends.”</p>
+        <p class="ask">If this is true, which of these statements are <u>NOT</u> true?</p>
+        <p>(a) The bell rang at 9am last Saturday.<br>(b) On Monday, the bell will ring at 9am.<br>(c) The bell rang at 9am on Wednesday.<br>(d) On one weekday, the bell didn't ring at 9am.</p>`,
+     opts:["(a) and (d) only","(b) only","(a) only","(c) and (d) only"], a:0,
+     clues:["Circle NOT. Hunt for statements that break the rule.","Mark each of (a)–(d) T or F first.","“Never at weekends” breaks one. “Every weekday” breaks another."],
+     why:[null,"(b) follows the rule, so it IS true.","(a) is not true — but there's another one.","(c) follows the rule, so it IS true."],
+     explain:"(a) breaks “never at weekends” and (d) breaks “every weekday”."},
+    {q:`<p>“Foxes are often seen in city parks at night.”</p><p class="ask">If this is true, which one of these <u>must</u> be true?</p>`,
+     opts:["Every city park has foxes.","Foxes are never seen in the daytime.","Foxes like parks better than forests.","If you visit a city park at night, you might see a fox."], a:3,
+     clues:["Watch the size words: often, some, all.","“Often” doesn't mean always or every.","Which option is safe even if foxes are only seen sometimes?"],
+     why:["“Often” isn't “every”.","Nothing is said about daytime.","Forests aren't mentioned.",null],
+     explain:"“Often” means it happens a lot, so you might see one. Same idea as Q14 (mushrooms)."},
+    {q:`<p>Leo says: “Every time I wear my lucky socks, my team wins.” Here are four games, with some entries missing.</p>
+        <div class="scroll"><table class="ev"><tr><th>Game</th><th>Lucky socks?</th><th>Team won?</th></tr>
+        <tr><td>1</td><td>No</td><td>(a)</td></tr><tr><td>2</td><td>Yes</td><td>(b)</td></tr>
+        <tr><td>3</td><td>(c)</td><td>Yes</td></tr><tr><td>4</td><td>(d)</td><td>No</td></tr></table></div>
+        <p class="ask">Which missing entry will <u>definitely</u> give evidence about Leo's claim, whatever it turns out to be?</p>`,
+     opts:["(a)","(b)","(c)","(d)"], a:1,
+     clues:["The claim is only about games where he wore the socks.","Game 1: no socks, so it can't test the claim.","For each gap, imagine Yes and No. Which gap tests the claim either way?"],
+     why:["No socks, so the claim doesn't apply.",null,"If (c) is No, it tells us nothing.","If (d) is Yes the claim is broken — but if it's No, it tells us nothing."],
+     explain:"Gap (b): a win supports the claim, a loss breaks it. Either way it's evidence."}
+  ],
+  puzzles:[
+    {q:`<p>“Every member of the school choir can read music.”</p><p class="ask">If this is true, which one of these <u>must</u> also be true?</p>`,
+     opts:["Zara can read music, so she must be in the choir.","Leo can't read music, so he is not in the choir.","Everyone who can read music is in the choir.","Choir members all enjoy singing."], a:1,
+     clues:["Write it as an arrow: Choir ➜ Reads music.","Arrows only go forwards. Reads music ➜ Choir is NOT the same thing.","Backwards trick: flip it and add “not”: Not reads music ➜ Not choir."],
+     why:["This turns the arrow round. Lots of people read music without being in the choir.",null,"Same mistake — the arrow has been turned round.","Might be true, but the statement says nothing about enjoying it."],
+     explain:"Choir ➜ Reads music, so Not reads music ➜ Not choir. Same pattern as Q6 (Harry and the construction workers)."},
+    {q:`<ul><li>Everyone who plays chess also plays draughts.</li><li>Nobody who plays draughts plays snap.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+     opts:["If Ana plays draughts, she plays chess.","If Ben doesn't play chess, he plays snap.","If Cy plays snap, he plays chess.","If Di plays chess, she does not play snap."], a:3,
+     clues:["Arrows: Chess ➜ Draughts. Draughts ➜ Not snap.","Join them: Chess ➜ Draughts ➜ Not snap.","Which option follows the chain forwards?"],
+     why:["Arrow turned round. Draughts doesn't lead to chess.","Not playing chess tells us nothing at all.","Snap ➜ not draughts ➜ not chess. This is the opposite!",null],
+     explain:"Follow the chain: chess ➜ draughts ➜ no snap. Same as Q5 (strawberry ➜ raspberry ➜ no chocolate)."},
+    {q:`<p>“Only pupils who finish their homework can go on the school trip.”</p><p class="ask">If this is true, which one of these <u>must</u> be true?</p>`,
+     opts:["Tom finished his homework, so he is going on the trip.","Sara went on the trip, so she finished her homework.","Everyone who finished their homework went on the trip.","Nobody finished their homework."], a:1,
+     clues:["“Only” is sneaky. “Only X can do Y” means Y ➜ X.","So: Went on trip ➜ Finished homework.","Which option matches that arrow?"],
+     why:["Finishing homework lets you go — it doesn't mean you went.",null,"Same mistake as the first option, for everyone.","Nothing says this."],
+     explain:"“Only homework-finishers can go” means Trip ➜ Homework. Sara went, so she must have finished."},
+    {q:`<p>“Mia's dog barks every time the doorbell rings, and at no other time.”</p>
+        <p class="ask">If this is true, which of these statements are <u>NOT</u> true?</p>
+        <p>(a) The doorbell rang and the dog stayed quiet.<br>(b) The dog is barking, so the doorbell must have rung.<br>(c) If the doorbell rings tomorrow, the dog will bark.<br>(d) The dog barked at a cat in the garden.</p>`,
+     opts:["(a) only","(b) and (c) only","(a) and (d) only","(d) only"], a:2,
+     clues:["Circle NOT. You're hunting for statements that break the rule.","Mark each of (a)–(d) T or F before you look at A–D.","“Every time” breaks one statement. “At no other time” breaks another."],
+     why:["(a) is not true — but there's another one.","(b) and (c) both follow from the rule, so they ARE true.",null,"(d) is not true — but neither is (a)."],
+     explain:"(a) breaks “every time” and (d) breaks “at no other time”. This is the Q40 trap: the question wants the statements that are NOT true."},
+    {q:`<p>Ruby says: “Every time I eat breakfast, I score a goal at football.” Here are her last four matches, with some entries missing.</p>
+        <div class="scroll"><table class="ev"><tr><th>Match</th><th>Ate breakfast?</th><th>Scored?</th></tr>
+        <tr><td>1</td><td>Yes</td><td>(a)</td></tr><tr><td>2</td><td>(b)</td><td>Yes</td></tr>
+        <tr><td>3</td><td>No</td><td>(c)</td></tr><tr><td>4</td><td>(d)</td><td>No</td></tr></table></div>
+        <p class="ask">Which missing entry will <u>definitely</u> give evidence about Ruby's claim, whatever it turns out to be?</p>`,
+     opts:["(a)","(b)","(c)","(d)"], a:0,
+     clues:["Her claim is only about matches where she ate breakfast.","Match 3: no breakfast, so it can't test the claim.","For each gap, imagine both answers (Yes and No). Which gap tests the claim either way?"],
+     why:[null,"If (b) is No, it tells us nothing. Not definite.","No breakfast, so the claim doesn't apply to this match.","If (d) is Yes, the claim is broken — but if it's No, it tells us nothing. Not definite."],
+     explain:"Gap (a): Yes supports the claim, No breaks it. Either way it's evidence. Same idea as Q20 (Carl's shoes)."},
+    {q:`<p>“Some cakes in Bella's bakery contain nuts.”</p><p class="ask">If this is true, which one of these <u>must</u> be true?</p>`,
+     opts:["All of Bella's cakes contain nuts.","Without checking, you can't be sure a cake from Bella's is nut-free.","Bella's biscuits don't contain nuts.","Most of Bella's cakes are nut-free."], a:1,
+     clues:["Watch the size words: some, all, most, often.","“Some” means at least one. It doesn't say how many.","Which option is safe whatever the number is?"],
+     why:["“Some” isn't “all”.",null,"Biscuits aren't mentioned at all.","“Some” could be most or just a few. We can't tell."],
+     explain:"You got this kind right in Q14 (the mushrooms). Same thinking!"}
+  ]
+},
+{
+  id:"args", tab:"CASE 3", title:"The Witness Statements",
+  blurb:"Which fact makes a claim stronger — or weaker?",
+  rule:"Does it support THIS claim?",
+  steps:[
+    "Underline exactly what is being claimed, including the “because” or “so”.",
+    "Strengthen or support: pick the option that makes that claim MORE likely.",
+    "Weaken: pick the option that makes it LESS likely — often by giving another explanation.",
+    "Trap: options that are true and nice, but about something else (money, the planet, carpets).",
+    "Say it out loud for each option: “Does this make the claim more likely?”"
+  ],
+  fromTest:"From your test: Q1 and Q38.",
+  evidence:"The bow was snatched with the LEFT hand, so the thief is left-handed.",
+  extra:[
+    {q:`<p>The mayor says: “Building a new skate park will mean fewer children skateboarding on busy roads.”</p><p class="ask">Which one of these, if true, <u>most strengthens</u> the mayor's argument?</p>`,
+     opts:["Skateboards come in many colours.","In a nearby town, skateboarding on roads halved after a skate park opened.","Skate parks are expensive to build.","Some adults skateboard too."], a:1,
+     clues:["The claim: skate park ➜ fewer children on roads.","Look for an option that links a skate park to less road skating.","Ignore options that are just facts about skateboarding."],
+     why:["Off topic.",null,"If anything, that's a reason against.","Doesn't link the park to less road skating."],
+     explain:"It shows the same change caused the same result somewhere else."},
+    {q:`<p>Leah says: “I got a better mark this time because I studied with music on.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> Leah's argument?</p>`,
+     opts:["Leah likes pop music.","Music can be relaxing.","Leah studied in her bedroom.","This test was much easier than the last one."], a:3,
+     clues:["Leah's reason: music ➜ better mark.","Weakening often means finding ANOTHER reason.","Which option explains the better mark without the music?"],
+     why:["Off topic.","That supports Leah, if anything.","Doesn't affect the claim.",null],
+     explain:"If the test was easier, the mark could go up without the music doing anything."},
+    {q:`<p>Grandad believes that eating more vegetables will give him more energy for gardening.</p><p class="ask">Which one of these, if true, <u>most supports</u> Grandad's view?</p>`,
+     opts:["Vegetables contain vitamins that help the body turn food into energy.","Vegetables are cheap at the market.","Gardening is a popular hobby.","Grandad grows his own carrots."], a:0,
+     clues:["The claim: more vegetables ➜ more energy.","Which option is about energy?","Watch for the money trap (like Q38)."],
+     why:[null,"True, but about money, not energy. The Q38 trap!","About gardening, not energy.","Doesn't show vegetables give energy."],
+     explain:"It links vegetables to exactly what Grandad wants: more energy."},
+    {q:`<p>The head teacher says: “Our new reading scheme has made pupils better readers, because reading scores went up this year.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> her argument?</p>`,
+     opts:["The new books have colourful covers.","Most pupils also joined a free after-school reading club this year.","The teachers like the new scheme.","The scheme cost a lot of money."], a:1,
+     clues:["Her reason: scores went up ➜ the scheme worked.","Is there ANOTHER reason scores could have gone up?","Weakening = another explanation."],
+     why:["Off topic.",null,"Liking it doesn't show whether it worked.","Cost doesn't tell us whether it worked."],
+     explain:"The reading club could be the real reason scores went up."},
+    {q:`<p>A zookeeper says: “Playing calm music helps our elephants relax.”</p><p class="ask">Which one of these, if true, <u>most strengthens</u> the zookeeper's argument?</p>`,
+     opts:["Elephants are the largest land animals.","Visitors enjoy the music.","On days the music plays, the elephants' heart rates are lower than on days it doesn't.","The music comes from speakers on the wall."], a:2,
+     clues:["The claim: calm music ➜ elephants relax.","Look for evidence about the ELEPHANTS, not the visitors.","Which option compares music days with no-music days?"],
+     why:["True, but off topic.","About visitors, not elephants.",null,"How it's played doesn't show it works."],
+     explain:"Lower heart rates on music days links the music to the elephants relaxing."},
+    {q:`<p>Ben says: “Our cat must have knocked the vase over, because she was in the room.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> Ben's argument?</p>`,
+     opts:["The cat often sleeps in that room.","Cats are good climbers.","The vase was expensive.","The window was wide open on a very windy day, and the curtain had tangled round the vase."], a:3,
+     clues:["Ben's reason: the cat was there ➜ the cat did it.","Weakening = another explanation.","Which option gives another way the vase could have fallen?"],
+     why:["Doesn't show she didn't do it.","That makes it more likely the cat did it!","Off topic.",null],
+     explain:"The wind and curtain give another explanation, so being in the room doesn't prove the cat did it."}
+  ],
+  puzzles:[
+    {q:`<p>The head teacher says: “Opening the library at lunchtime will help pupils read more.”</p><p class="ask">Which one of these, if true, <u>most strengthens</u> her argument?</p>`,
+     opts:["The library has new carpets.","Reading is good for you.","Many pupils say they would read at lunchtime if they had somewhere quiet to go.","The library is expensive to heat."], a:2,
+     clues:["Underline the claim: library open at lunch ➜ pupils read more.","For each option ask: does this make that claim more likely?","Watch out for options that are true and nice but don't link to the claim."],
+     why:["Nice, but it doesn't mean more reading.","True — but it doesn't show that opening at lunch leads to more reading. This is the “nice fact” trap.",null,"If anything, that's a reason against."],
+     explain:"It links the change (somewhere quiet at lunch) directly to the result (more reading)."},
+    {q:`<p>The coach says: “We lost the match because we didn't train enough.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> the coach's argument?</p>`,
+     opts:["The other team trained even less than us and still won easily.","We trained less than usual that week.","Training makes players tired.","Football is the most popular sport at school."], a:0,
+     clues:["To weaken, find the option that makes the claim LESS likely.","The claim: not enough training ➜ we lost.","Which option shows training probably wasn't the reason?"],
+     why:[null,"This supports the coach!","Doesn't tell us why they lost.","Off topic."],
+     explain:"If the other team trained even less and still won, lack of training probably isn't why we lost."},
+    {q:`<p>Sam believes that walking to school will help him feel more awake in lessons.</p><p class="ask">Which one of these, if true, <u>most supports</u> Sam's view?</p>`,
+     opts:["Walking to school is free.","Cars cause pollution.","Sam's best friend walks to school.","Gentle exercise in the morning helps people stay alert for several hours."], a:3,
+     clues:["Underline the claim: walking ➜ more awake in lessons.","Which option is about feeling awake?","Ignore options about money or the planet — they're true, but they're about something else."],
+     why:["True, but it's about money, not feeling awake. Same trap as Q38.","True, but it's about the planet, not Sam's lessons.","Doesn't show it helps anyone feel awake.",null],
+     explain:"It connects walking (exercise) to the exact result Sam wants (staying alert)."},
+    {q:`<p>A shop owner says: “Putting chocolate next to the till makes customers buy more chocolate.”</p><p class="ask">Which one of these, if true, <u>most strengthens</u> the shop owner's argument?</p>`,
+     opts:["Chocolate sells best in winter.","Since the chocolate moved next to the till, chocolate sales have doubled while other sales stayed the same.","Customers like friendly staff.","The till is next to the door."], a:1,
+     clues:["The claim: chocolate by the till ➜ more chocolate sold.","Look for an option that links the move to the sales.","Bonus: does any option rule out another explanation, like the shop just being busier?"],
+     why:["That's about seasons, not where the chocolate is.",null,"Off topic.","Says where the till is, not whether people buy more."],
+     explain:"It links the change to the result, and “other sales stayed the same” rules out the shop simply being busier."},
+    {q:`<p>Jade says: “The new plants in our classroom make everyone concentrate better, because our test scores went up this term.”</p><p class="ask">Which one of these, if true, <u>most weakens</u> Jade's argument?</p>`,
+     opts:["The plants need watering twice a week.","Plants make classrooms look nicer.","This term's tests were much easier than last term's.","Jade's favourite plant is a cactus."], a:2,
+     clues:["Jade's reason: scores went up ➜ the plants helped.","Weakening often means finding ANOTHER reason for what happened.","Is there an option that explains higher scores without the plants?"],
+     why:["Doesn't affect the claim at all.","Nice, but it doesn't touch the reason scores went up.",null,"Off topic."],
+     explain:"If the tests were easier, scores could go up without the plants doing anything. Another explanation weakens the claim."}
+  ]
+}
+];
+
+CASES[2].puzzles.push(CASES[2].extra.shift()); // 6 puzzles in every case
+const KEY="greta-case-files-v1";
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let mode=ls.get(KEY+"-mode")||"dark";
+function applyMode(){document.documentElement.classList.toggle("light",mode==="light")}
+applyMode();
+let playerName=ls.get(KEY+"-name")||"";
+function saveRun(){
+  if(state.view==="puzzle") ls.set(KEY+"-run",JSON.stringify({ci:state.ci,pi:state.pi,results:state.results,pts:state.pts,streak:state.streak,fresh:state.fresh,round:state.round,solved:state.solved||state.tries>=2}));
+}
+function loadRun(){try{return JSON.parse(ls.get(KEY+"-run")||"null")}catch(e){return null}}
+function clearRun(){ls.del(KEY+"-run")}
+let progress={};
+try{progress=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){progress={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(progress))}catch(e){}}
+
+const app=document.getElementById("app");
+let state={view:"home"};
+const L="ABCD";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const SUSPECTS=[
+  {name:"Mr Crumble",role:"the caretaker",face:"🧹",back:true,glasses:true,left:true,alibi:"Mr Crumble wears glasses — so he signed the visitors' book. Evidence 2 rules him out."},
+  {name:"Ms Fizz",role:"the science teacher",face:"🧪",back:true,glasses:false,left:false,alibi:"Ms Fizz is right-handed. Evidence 3 rules her out."},
+  {name:"Dr Quaver",role:"the conductor",face:"🎼",back:false,glasses:false,left:true,alibi:"Dr Quaver was at the front, conducting. Evidence 1 rules him out."},
+  {name:"Pippa Prowl",role:"the piano tuner",face:"🎹",back:true,glasses:false,left:true,alibi:null}
+];
+const THIEF=3;
+const RANKS=[[0,"Rookie"],[12,"Detective Constable"],[25,"Detective Sergeant"],[38,"Detective Inspector"]];
+const PRAISE=["Elementary!","Sharp eyes!","Case cracked!","Brilliant deduction!","The clues never lie!","Super sleuthing!"];
+function totalPoints(){return CASES.reduce((t,c)=>t+((progress[c.id]&&progress[c.id].points)||0),0)}
+function maxPoints(){return CASES.reduce((t,c)=>t+c.puzzles.length*3,0)}
+function rank(){if(progress.caught) return "Chief Inspector";let r=RANKS[0][1];for(const [n,t] of RANKS) if(totalPoints()>=n) r=t;return r}
+function allSolved(){return CASES.every(c=>progress[c.id])}
+let soundOn=false, actx=null;
+try{soundOn=localStorage.getItem(KEY+"-sound")==="1"}catch(e){}
+function chime(good){
+  if(!soundOn) return;
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const notes=good?[523,659,784]:[330,262];
+    notes.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type="triangle";o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,actx.currentTime+i*0.11);g.gain.exponentialRampToValueAtTime(0.18,actx.currentTime+i*0.11+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+i*0.11+0.3);o.connect(g).connect(actx.destination);o.start(actx.currentTime+i*0.11);o.stop(actx.currentTime+i*0.11+0.32)});
+  }catch(e){}
+}
+function confetti(){
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv=document.createElement("canvas");cv.className="confetti";document.body.appendChild(cv);
+  const W=cv.width=innerWidth,H=cv.height=innerHeight,ctx=cv.getContext("2d");
+  const cols=["#dcb76c","#72c9a0","#e2625a","#8fb4ff","#ece7da"];
+  const ps=Array.from({length:90},()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*9-3,r:Math.random()*6+3,c:cols[Math.floor(Math.random()*cols.length)],a:Math.random()*6}));
+  let t=0;(function f(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.28;p.a+=.15;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);ctx.restore()});
+    if(++t<110) requestAnimationFrame(f); else cv.remove()})();
+}
+
+function render(stay){
+  const y=window.scrollY;
+  setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
+  if(state.view==="home") return home();
+  if(state.view==="brief") return brief();
+  if(state.view==="puzzle") return puzzle();
+  if(state.view==="end") return endView();
+  if(state.view==="accuse") return accuse();
+}
+
+function home(){
+  const tp=totalPoints(); const run=loadRun();
+  app.innerHTML=`
+  <header class="top"><div><p class="label">Critical thinking detective school</p><h1>Clue Crackers</h1></div>
+    <div class="badge"><span class="label">Your rank</span><b>${rank()}${playerName?" "+esc(playerName):""}</b><span>🔍 ${tp} / ${maxPoints()} magnifiers</span>
+    <div class="toolbar"><button class="btn ghost mini" id="mode">${mode==="light"?"🌙 Dark mode":"☀️ Light mode"}</button>
+    <button class="btn ghost mini" id="snd">${soundOn?"🔊 Sound on":"🔈 Sound off"}</button></div></div></header>
+  ${playerName?"":`<section class="card"><p class="label">New recruit</p><h3>What's your detective name?</h3>
+    <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
+  ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
+    <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
+  <section class="card story"><p class="label">Breaking news</p>
+    <h2>The Case of the Vanishing Golden Bow</h2>
+    <p>Disaster at the school concert! The Golden Bow trophy has vanished from the music room. Solve each case file to unlock a piece of evidence. When you have all three, name the thief.</p>
+    <div class="evid">${CASES.map((c,i)=>progress[c.id]
+      ?`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(c.evidence)}</p></div>`
+      :`<div class="ev-card"><span class="label">Evidence ${i+1}</span><p>🔒 Solve ${c.tab} to unlock</p></div>`).join("")}</div>
+    <div class="row">${allSolved()
+      ?`<button class="btn" id="acc">${progress.caught?"🏆 Case solved — see the thief again":"🕵️ Name the thief!"}</button>`
+      :`<span class="hint">${CASES.filter(c=>progress[c.id]).length} of 3 pieces of evidence found</span>`}</div>
+  </section>
+  <div class="folders">${CASES.map((c,i)=>{
+    const p=progress[c.id];
+    return `<button class="folder" data-tab="${c.tab}" data-i="${i}">
+      ${p?`<span class="stamp">SOLVED</span>`:""}
+      <h2>${esc(c.title)}</h2><p>${esc(c.blurb)}</p>
+      <div class="meta"><span>${c.puzzles.length} puzzles · up to ${c.puzzles.length*3} 🔍</span><span>${p?`Best: ${p.points||0} 🔍 · ${p.best}/${c.puzzles.length} first try`:"Not started"}</span></div>
+    </button>`}).join("")}</div>
+  <div class="grownups"><p class="label">For grown-ups</p>
+  <p>Three common 11+ critical-thinking question types: seating and ordering puzzles, “must be true” logic, and strengthen/weaken arguments. Do one case per session. Scoring: 3 🔍 for right first time with no clue, 2 with a clue, 1 on the second try. Praise the method (drawing it, trying a second arrangement) even when the final answer slips.</p>
+  <p>Progress saves automatically in this browser, including a case that's halfway through. To move it to another device or browser, copy the backup code and paste it there.</p>
+  <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
+    <textarea id="bcode" hidden aria-label="Backup code"></textarea>
+    <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
+  app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{state={view:"brief",ci:+b.dataset.i};render()});
+  const a=document.getElementById("acc"); if(a) a.onclick=()=>{state={view:"accuse",wrong:[]};render()};
+  document.getElementById("mode").onclick=()=>{mode=mode==="light"?"dark":"light";ls.set(KEY+"-mode",mode);applyMode();render(true)};
+  const nf=document.getElementById("nameform"); if(nf) nf.onsubmit=e=>{e.preventDefault();const v=document.getElementById("pname").value.trim();if(v){playerName=v;ls.set(KEY+"-name",v);render(true)}};
+  const rn=document.getElementById("rename"); if(rn) rn.onclick=()=>{playerName="";ls.del(KEY+"-name");render()};
+  const rs=document.getElementById("resume"); if(rs) rs.onclick=()=>{state=Object.assign({view:"puzzle"},run);newPuzzle();if(run.solved&&run.pi<run.round.length-1){state.pi++;}render()};
+  const dr=document.getElementById("drop"); if(dr) dr.onclick=()=>{clearRun();render(true)};
+  const bcode=document.getElementById("bcode"), bmsg=document.getElementById("bmsg");
+  const code=()=>btoa(unescape(encodeURIComponent(JSON.stringify({progress,name:playerName,run:loadRun()}))));
+  document.getElementById("copyb").onclick=()=>{const c=code();bcode.hidden=false;bcode.value=c;document.getElementById("rrow").hidden=true;
+    navigator.clipboard&&navigator.clipboard.writeText(c).then(()=>{bcode.insertAdjacentHTML("afterend","")},()=>{bcode.select()})||bcode.select()};
+  document.getElementById("showr").onclick=()=>{bcode.hidden=false;bcode.value="";bcode.placeholder="Paste a backup code here";document.getElementById("rrow").hidden=false;bcode.focus()};
+  document.getElementById("dorestore").onclick=()=>{try{const d=JSON.parse(decodeURIComponent(escape(atob(bcode.value.trim()))));
+      if(!d||typeof d.progress!=="object") throw 0; progress=d.progress; save(); if(d.name){playerName=d.name;ls.set(KEY+"-name",d.name)} if(d.run) ls.set(KEY+"-run",JSON.stringify(d.run)); else clearRun(); render();
+    }catch(e){bmsg.textContent="That code didn't work. Check you copied all of it."}};
+  document.getElementById("snd").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem(KEY+"-sound",soundOn?"1":"0")}catch(e){};chime(true);render(true)};
+}
+
+function brief(){
+  const c=CASES[state.ci];
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">${c.tab} · Briefing</p><h2>${esc(c.title)}</h2>
+    <p class="label">The detective's rule — say it out loud</p>
+    <div class="rule">${esc(c.rule)}</div>
+    <h3>How a good detective does it</h3>
+    <ol class="steps">${c.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+    <p class="from-test">${esc(c.fromTest)}</p>
+    <div class="row">${progress[c.id]?`<button class="btn" id="fresh">🎲 New puzzles</button><button class="btn ghost" id="go">Replay the originals</button>`:`<button class="btn" id="go">Open the case</button>`}</div>
+    ${progress[c.id]?`<p class="hint">${c.id==="seats"?"New puzzles are made up fresh every time — there's no end to them!":"New puzzles are a mix from a bigger puzzle bank."}</p>`:""}
+  </section>`;
+  back();
+  document.getElementById("go").onclick=()=>startCase(state.ci,false);
+  const fr=document.getElementById("fresh"); if(fr) fr.onclick=()=>startCase(state.ci,true);
+}
+
+function startCase(ci,fresh){state={view:"puzzle",ci,pi:0,results:[],pts:0,streak:0,fresh:!!fresh,round:buildRound(CASES[ci],fresh)};newPuzzle();render()}
+function newPuzzle(){Object.assign(state,{tries:0,shown:0,picked:[],solved:false,boards:null,marks:null})}
+
+function puzzle(){
+  saveRun();
+  const c=CASES[state.ci], R=state.round, p=R[state.pi];
+  const dots=R.map((_,i)=>{
+    const r=state.results[i];
+    return `<span class="dot ${r===true?"done":r===false?"miss":""} ${i===state.pi?"now":""}"></span>`}).join("");
+  const last=state.picked[state.picked.length-1];
+  let fb="";
+  if(state.solved){
+    const first=state.tries===1;
+    fb=`<div class="fb good"><div class="row" style="justify-content:space-between"><strong class="pop-in">${state.praise}</strong><span class="gain">+${state.gain} 🔍</span></div>${state.streak>=2?`<p class="streak">🔥 ${state.streak} in a row!</p>`:""}<p>${esc(p.explain)}</p>${npIndex(p)>=0?`<p class="recap">🚨 <b>Trap alert reminder:</b> when “not possible to tell” is an option, don't stop at your first arrangement. <b>List</b> every place the most restricted person (or pair) could go, <b>place</b> everyone else, then <b>tick ✅ or cross ❌</b> each one. One ✅ = that's your answer. Two ✅ that give different answers = not possible to tell.</p>`:""}</div>
+        <div class="row"><button class="btn" id="next">${state.pi<R.length-1?"Next puzzle →":"Close the case →"}</button></div>`;
+  } else if(state.tries===1){
+    fb=`<div class="fb bad"><strong>Not quite — check this</strong><p>${esc(p.why[last]||"")}</p><p>Look at a clue below, then try again.</p></div>`;
+  } else if(state.tries>=2){
+    fb=`<div class="fb bad"><strong>The answer is ${L[p.a]}</strong><p>${esc(p.why[last]||"")}</p><p>${esc(p.explain)}</p>${npIndex(p)>=0?`<p class="recap">🚨 <b>Trap alert reminder:</b> when “not possible to tell” is an option, don't stop at your first arrangement. <b>List</b> every place the most restricted person (or pair) could go, <b>place</b> everyone else, then <b>tick ✅ or cross ❌</b> each one. One ✅ = that's your answer. Two ✅ that give different answers = not possible to tell.</p>`:""}</div>
+        <div class="row"><button class="btn" id="next">${state.pi<R.length-1?"Next puzzle →":"Close the case →"}</button></div>`;
+  }
+  const locked=state.solved||state.tries>=2;
+  app.innerHTML=`
+  <div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← All cases</button><div class="row" style="gap:14px"><span class="pts">🔍 ${state.pts}</span><div class="dots">${dots}</div></div></div>
+  <section class="card">
+    <p class="label">${c.tab} · Puzzle ${state.pi+1} of ${R.length}${state.fresh?" · 🎲 new puzzles":""}</p>
+    <div class="rule" style="font-size:1rem">${esc(c.rule)}</div>
+    <div class="q">${p.q}</div>
+    ${p.opts.some(o=>/not possible to tell/i.test(o))&&!state.solved?`<div class="alert" role="note"><span class="t">🚨 Trap alert: “not possible to tell”</span><p>Found one arrangement? Don't stop yet!</p><ol><li><b>List</b> every place the most restricted person (or pair) could go.</li><li><b>Place</b> everyone else and check every clue.</li><li><b>Tick ✅ or cross ❌</b> each arrangement.</li></ol><p>One ✅ = that's your answer. Two ✅ that give different answers = <b>not possible to tell</b>.</p></div>`:""}
+    ${p.board?boardHTML(p.board):""}
+    <div class="opts">${p.opts.map((o,i)=>{
+      const cls=(locked&&i===p.a)?"right":state.picked.includes(i)?"wrong":"";
+      return `<button class="opt ${cls}" data-i="${i}" ${locked||state.picked.includes(i)?"disabled":""}><b>${L[i]}</b><span>${esc(o)}</span></button>`}).join("")}</div>
+    ${fb}
+    <div class="clues">${p.clues.slice(0,state.shown).map((t,i)=>`<div class="clue"><span class="label">Clue ${i+1}</span><br>${esc(t)}</div>`).join("")}</div>
+    ${state.shown<p.clues.length&&!locked?`<div class="row"><button class="btn ghost" id="clue">Need a clue? (${p.clues.length-state.shown} left)</button></div>`:""}
+  </section>`;
+  back();
+  app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+  const cl=document.getElementById("clue"); if(cl) cl.onclick=()=>{state.shown++;render(true)};
+  const nx=document.getElementById("next"); if(nx) nx.onclick=next;
+  if(p.board) wireBoard(p.board);
+}
+
+function choose(i){
+  const p=state.round[state.pi];
+  state.tries++; state.picked.push(i);
+  if(i===p.a){
+    state.solved=true;
+    state.gain=state.tries===1?(state.shown===0?3:2):1; state.pts+=state.gain;
+    state.streak=state.tries===1?state.streak+1:0;
+    state.praise=PRAISE[Math.floor(Math.random()*PRAISE.length)];
+    confetti(); chime(true);
+  } else {
+    if(state.tries>=2) state.streak=0;
+    if(state.tries===1 && state.shown===0) state.shown=1;
+    chime(false);
+  }
+  if(state.results[state.pi]===undefined && (state.solved||state.tries>=2)) state.results[state.pi]=(state.solved&&state.tries===1);
+  render(true);
+}
+
+function next(){
+  const c=CASES[state.ci];
+  if(state.pi<state.round.length-1){state.pi++;newPuzzle();render()}
+  else{
+    const score=state.results.filter(Boolean).length;
+    const prev=progress[c.id];
+    state.firstSolve=!prev; progress[c.id]={best:Math.max(score,prev?prev.best:0),points:Math.max(state.pts,prev&&prev.points?prev.points:0)}; save(); confetti(); chime(true);
+    clearRun(); state.view="end"; state.score=score; render();
+  }
+}
+
+function endView(){
+  const c=CASES[state.ci], n=state.round.length, s=state.score;
+  const msg=s===n?"Perfect detective work!":s>=n-2?"Great work, detective.":"Good effort — every case gets easier the second time.";
+  app.innerHTML=`
+  <section class="card end">
+    <p class="label">${c.tab}</p><h2>${esc(c.title)}</h2>
+    <span class="stamp pop">CASE CLOSED</span>
+    <p class="stars">🔍 ${state.pts} magnifiers · ${s} / ${n} first try</p>
+    <p>Rank: <b>${rank()}</b></p>
+    <div class="ev-card open unlock"><span class="label">${state.firstSolve?"New evidence unlocked!":"Evidence"} · Evidence ${state.ci+1}</span><p>${esc(c.evidence)}</p></div>
+    ${allSolved()&&!progress.caught?`<button class="btn" id="acc2">🕵️ You have all the evidence — name the thief!</button>`:""}
+    <p>${msg}</p>
+    <p class="label">Remember the rule</p><div class="rule">${esc(c.rule)}</div>
+    <p class="from-test">Show a grown-up this screen.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="home">Back to the case files</button><button class="btn ghost" id="again">🎲 Play again with new puzzles</button></div>
+  </section>`;
+  document.getElementById("home").onclick=()=>{state={view:"home"};render()};
+  const a2=document.getElementById("acc2"); if(a2) a2.onclick=()=>{state={view:"accuse",wrong:[]};render()};
+  document.getElementById("again").onclick=()=>startCase(state.ci,true);
+}
+
+function accuse(){
+  const done=progress.caught&&state.wrong!==null;
+  const caughtNow=state.caught||progress.caught;
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">Final case</p><h2>Who stole the Golden Bow?</h2>
+    <p>Use all three pieces of evidence to rule suspects out. Only one person fits every clue.</p>
+    <div class="evid">${CASES.map((c,i)=>`<div class="ev-card open"><span class="label">Evidence ${i+1}</span><p>${esc(c.evidence)}</p></div>`).join("")}</div>
+    <div class="suspects">${SUSPECTS.map((p,i)=>{
+      const out=state.wrong.includes(i), win=caughtNow&&i===THIEF;
+      return `<button class="suspect ${out?"out":""} ${win?"win":""}" data-i="${i}" ${out||caughtNow?"disabled":""}>
+        <span class="face">${p.face}</span><b>${p.name}</b><small>${p.role}</small>
+        <span class="chips"><span class="chip">${p.back?"Back row":"Front row"}</span><span class="chip">${p.glasses?"Glasses":"No glasses"}</span><span class="chip">${p.left?"Left-handed":"Right-handed"}</span></span>
+        ${out?`<span class="stamp">ALIBI</span>`:""}${win?`<span class="stamp">GUILTY</span>`:""}
+      </button>`}).join("")}</div>
+    ${state.msg?`<div class="fb bad"><strong>Not them!</strong><p>${esc(state.msg)}</p></div>`:""}
+    ${caughtNow?`<div class="fb good"><strong>Case closed, Chief Inspector!</strong><p>Pippa Prowl sat in the back row, doesn't wear glasses (so she didn't sign the book), and is left-handed. The Golden Bow is back in time for the concert! 🎻</p></div>`:""}
+  </section>`;
+  back();
+  app.querySelectorAll(".suspect").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i;
+    if(i===THIEF){state.caught=true;state.msg="";progress.caught=true;save();confetti();setTimeout(confetti,400);chime(true)}
+    else{state.wrong.push(i);state.msg=SUSPECTS[i].alibi;chime(false)}
+    render(true)});
+}
+
+function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
+
+/* ---------- seating puzzle generator (checked by a solver) ---------- */
+const NAME_POOL=["Ava","Ben","Cleo","Dev","Eli","Fay","Gus","Isla","Jack","Kai","Lily","Max","Nora","Omar","Pia","Rex","Sana","Theo","Una","Zac"];
+function rnd(n){return Math.floor(Math.random()*n)}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+function perms(arr){if(arr.length<=1)return [arr];const out=[];arr.forEach((x,i)=>{perms(arr.slice(0,i).concat(arr.slice(i+1))).forEach(p=>out.push([x].concat(p)))});return out}
+/* arrangement = array of person indexes by seat. Row: seat 0 is the left end, everyone faces the same way as you.
+   Circle: seat 0 is the bottom, seat i+1 is on the LEFT of seat i (matches the scratch board). */
+function makeGeom(type,n){
+  const pos=(arr,x)=>arr.indexOf(x);
+  if(type==="row") return {
+    left:(arr,x)=>{const k=pos(arr,x);return k>0?arr[k-1]:-1},
+    right:(arr,x)=>{const k=pos(arr,x);return k<n-1?arr[k+1]:-1},
+    next:(arr,x,y)=>Math.abs(pos(arr,x)-pos(arr,y))===1,
+    end:(arr,x)=>{const k=pos(arr,x);return k===0||k===n-1},
+    seat:(arr,x)=>pos(arr,x)
+  };
+  return {
+    left:(arr,x)=>arr[(pos(arr,x)+1)%n],
+    right:(arr,x)=>arr[(pos(arr,x)-1+n)%n],
+    next:(arr,x,y)=>{const d=Math.abs(pos(arr,x)-pos(arr,y));return d===1||d===n-1},
+    opp:(arr,x)=>n%2===0?arr[(pos(arr,x)+n/2)%n]:-1
+  };
+}
+function genSeating(){
+  for(let attempt=0;attempt<4000;attempt++){
+    const type=Math.random()<0.55?"row":"circle";
+    const n=type==="row"?(Math.random()<0.6?4:5):(Math.random()<0.5?4:5);
+    const names=shuffle(NAME_POOL).slice(0,n).sort();
+    const G=makeGeom(type,n);
+    let all=perms([...Array(n).keys()]);
+    if(type==="circle") all=all.filter(a=>a[0]===0);   // turning the table round doesn't change anything
+    const pick=()=>{const x=rnd(n);let y=rnd(n);while(y===x)y=rnd(n);return [x,y]};
+    const kinds=type==="row"?["end","notEnd","next","notNext","leftOf","seat"]:["next","notNext","leftOf","rightOf"].concat(n%2===0?["opp","notOpp"]:[]);
+    const nClues=2+rnd(type==="row"&&n===5?3:2);
+    const clues=[];
+    for(let k=0;k<nClues;k++){
+      const kind=kinds[rnd(kinds.length)], [x,y]=pick(), X=names[x], Y=names[y];
+      let t,f;
+      if(kind==="end"){t=`${X} sits at one end of the row.`;f=a=>G.end(a,x)}
+      if(kind==="notEnd"){t=`${X} is not at either end of the row.`;f=a=>!G.end(a,x)}
+      if(kind==="seat"){const s=rnd(n);t=`${X} sits in seat ${s+1}.`;f=a=>G.seat(a,x)===s}
+      if(kind==="next"){t=`${X} sits next to ${Y}.`;f=a=>G.next(a,x,y)}
+      if(kind==="notNext"){t=`${X} does not sit next to ${Y}.`;f=a=>!G.next(a,x,y)}
+      if(kind==="leftOf"){t=`${X} sits next to ${Y}, on ${Y}'s left.`;f=a=>G.left(a,y)===x}
+      if(kind==="rightOf"){t=`${X} sits next to ${Y}, on ${Y}'s right.`;f=a=>G.right(a,y)===x}
+      if(kind==="opp"){t=`${X} sits opposite ${Y}.`;f=a=>G.opp(a,x)===y}
+      if(kind==="notOpp"){t=`${X} does not sit opposite ${Y}.`;f=a=>G.opp(a,x)!==y}
+      if(clues.some(c=>c.t===t)) {k--;continue}
+      clues.push({t,f});
+    }
+    const valid=all.filter(a=>clues.every(c=>c.f(a)));
+    if(valid.length<1||valid.length>3) continue;
+    // drop puzzles with a clue that does nothing
+    if(clues.some((c,i)=>all.filter(a=>clues.every((d,j)=>j===i||d.f(a))).length===valid.length)) continue;
+    // question
+    const z=rnd(n), Z=names[z];
+    const qs=type==="row"?["left","right","seatQ"]:["left","right"].concat(n%2===0?["opp"]:[]);
+    const qk=qs[rnd(qs.length)];
+    let ask,ansOf;
+    if(qk==="left"){ask=`Who is sitting on ${Z}'s left?`;ansOf=a=>G.left(a,z)}
+    if(qk==="right"){ask=`Who is sitting on ${Z}'s right?`;ansOf=a=>G.right(a,z)}
+    if(qk==="opp"){ask=`Who is sitting opposite ${Z}?`;ansOf=a=>G.opp(a,z)}
+    let seatNo=0;
+    if(qk==="seatQ"){seatNo=rnd(n);ask=`Who is in seat ${seatNo+1}?`;ansOf=a=>a[seatNo]}
+    const answers=valid.map(ansOf);
+    if(answers.some(v=>v<0)) continue;                 // someone at the end has no neighbour on that side
+    const uniq=[...new Set(answers)];
+    const wantNP=Math.random()<0.4;
+    if(wantNP!==(uniq.length>1)) continue;
+    if(qk==="seatQ"&&clues.some(c=>c.t.endsWith(`seat ${seatNo+1}.`))) continue;
+    // options: 3 names + not possible
+    let pool=uniq.slice(0,3);
+    const others=shuffle([...Array(n).keys()].filter(i=>!pool.includes(i)&&(qk==="seatQ"||i!==z)));
+    while(pool.length<3&&others.length) pool.push(others.shift());
+    if(pool.length<3) continue;
+    pool=shuffle(pool);
+    const opts=pool.map(i=>names[i]).concat(["It is not possible to tell"]);
+    const a=uniq.length>1?3:pool.indexOf(uniq[0]);
+    const desc=arr=>type==="row"?arr.map(i=>names[i]).join(", "):`${names[arr[0]]} at the bottom, then going round to the left: `+arr.map(i=>names[i]).join(" → ");
+    const list=valid.map((v,i)=>`(${i+1}) ${desc(v)}`).join("   ");
+    const why=opts.map((o,i)=>{
+      if(i===a) return null;
+      if(i===3) return "Only one arrangement fits every clue, so we CAN tell.";
+      const who=pool[i];
+      return answers.includes(who)?`${o} is right in one arrangement, but not in every one. Look for another arrangement.`:`${o} isn't the answer in any arrangement that fits all the clues.`;
+    });
+    const setting=type==="row"
+      ?`<p>${names.join(", ").replace(/, ([^,]*)$/," and $1")} sit side by side in a row of ${n} seats, numbered 1 to ${n} from left to right. They all face the same way as you, so their left is your left.</p>`
+      :`<p>${names.join(", ").replace(/, ([^,]*)$/," and $1")} sit equally spaced around a round table, all facing the middle.</p>`;
+    return {
+      gen:true,
+      board:{type,names},
+      q:`${setting}<ul>${clues.map(c=>`<li>${c.t}</li>`).join("")}</ul><p class="ask">${ask}</p>`,
+      opts,a,why,
+      clues:["Draw the seats on the scratch board. Put the most definite clue in first.",
+             type==="circle"?"Put one person at the bottom of the circle. For them, left is your left. Then try every place for the next person.":"Try every place the most restricted person (or pair) could go. Tick ✅ or cross ❌ each arrangement.",
+             valid.length===1?"Only ONE arrangement fits every clue. Find it, then answer.":`${valid.length} arrangements fit every clue. Find them all, then check: do they give the same answer?`],
+      explain:(valid.length===1?"Only one arrangement fits every clue: ":`${valid.length} arrangements fit every clue: `)+list+(uniq.length>1?". They give different answers, so it is not possible to tell.":valid.length>1?`. They all give the same answer: ${names[uniq[0]]}.`:`. So the answer is ${names[uniq[0]]}.`)
+    };
+  }
+  return null;
+}
+function buildRound(c,fresh){
+  if(!fresh) return c.puzzles;
+  if(c.id==="seats"){const r=[];while(r.length<6){const g=genSeating();if(g)r.push(g)}return r}
+  return shuffle(c.puzzles.concat(c.extra||[])).slice(0,6);
+}
+
+/* ---------- scratch board ---------- */
+function npIndex(p){return p.opts.findIndex(o=>/not possible to tell/i.test(o))}
+function boardHTML(b){
+  const n=b.names.length, p=state.round[state.pi], k=npIndex(p);
+  if(!state.boards){state.boards=[Array(n).fill(-1)];state.marks=[null]}
+  const seatBtn=(a,i,label)=>{
+    const v=state.boards[a][i];
+    return `<button class="seat ${v>=0?"filled":""}" data-a="${a}" data-s="${i}" aria-label="Arrangement ${a+1}, ${label}: ${v>=0?b.names[v]:"empty"}">${v>=0?esc(b.names[v]):"?"}<small>${label}</small></button>`};
+  const one=a=>{
+    let inner="";
+    if(b.type==="row"){
+      const labels=b.labels||b.names.map((_,i)=>"Seat "+(i+1));
+      inner=`<div class="seats-row" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${labels.map((l,i)=>seatBtn(a,i,l)).join("")}</div>
+        ${b.ends===false?"":`<div class="ends"><span>← left</span><span>right →</span></div>`}`;
+    } else {
+      const r=38; let seats="", arrows="";
+      for(let i=0;i<n;i++){
+        const ang=Math.PI/2 + i*2*Math.PI/n;
+        const x=50+r*Math.cos(ang), y=50+r*Math.sin(ang);
+        const ax=50+24*Math.cos(ang), ay=50+24*Math.sin(ang), bx=50+14*Math.cos(ang), by=50+14*Math.sin(ang);
+        arrows+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="var(--muted)" stroke-width="1" marker-end="url(#ah${a})"/>`;
+        seats+=`<div style="position:absolute;left:${x}%;top:${y}%">${seatBtn(a,i,i===0?"bottom":"seat")}</div>`;
+      }
+      inner=`<div class="circle-box"><svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><marker id="ah${a}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 z" fill="var(--muted)"/></marker></defs>
+        <circle cx="50" cy="50" r="27" fill="none" stroke="var(--line)" stroke-width="1"/>${arrows}</svg>${seats}</div>
+        <div class="ends"><span>← bottom person's left</span><span>bottom person's right →</span></div>`;
+    }
+    const m=state.marks[a];
+    return `<div class="arr ${m||""}"><div class="row" style="justify-content:space-between">
+        <span class="label">Arrangement ${a+1}${m==="ok"?" ✅":m==="no"?" ❌":""}</span>
+        <div class="row" style="gap:6px">
+          <button class="btn ghost mini ${m==="ok"?"on":""}" data-mark="ok" data-a="${a}" aria-label="Arrangement ${a+1} fits every clue">✅ Fits</button>
+          <button class="btn ghost mini ${m==="no"?"on":""}" data-mark="no" data-a="${a}" aria-label="Arrangement ${a+1} breaks a clue">❌ Breaks a clue</button>
+          ${a>0?`<button class="btn ghost mini" data-del="${a}" aria-label="Remove arrangement ${a+1}">Remove</button>`:`<button class="btn ghost mini" data-clr="0">Clear</button>`}
+        </div></div>${inner}</div>`;
+  };
+  const ticks=state.marks.filter(x=>x==="ok").length;
+  return `<div class="board"><span class="label">Scratch board</span>
+    <p class="hint">Tap a seat to cycle through the names. ${b.type==="circle"?"Everyone faces the middle (arrows). For the person at the bottom, their left is your left.":"Fill in the fixed facts first."}</p>
+    ${k>=0?`<p class="np-hint">🔎 Option ${L[k]} says “not possible to tell”. <b>Will there be another arrangement?</b> Use “+ Try another arrangement” to check.</p>`:""}
+    ${state.boards.map((_,a)=>one(a)).join("")}
+    <div class="row" style="justify-content:space-between">
+      ${state.boards.length<4?`<button class="btn ghost" id="addArr">+ Try another arrangement</button>`:"<span></span>"}
+      ${ticks>=2?`<span class="hint">${ticks} arrangements fit. Do they give the same answer? If not → not possible to tell.</span>`:""}
+    </div></div>`;
+}
+function wireBoard(b){
+  const n=b.names.length;
+  app.querySelectorAll(".seat").forEach(btn=>btn.onclick=()=>{
+    const a=+btn.dataset.a, i=+btn.dataset.s; let v=state.boards[a][i]+1; if(v>=n) v=-1;
+    state.boards[a][i]=v; render(true);
+  });
+  app.querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=()=>{
+    const a=+btn.dataset.a, m=btn.dataset.mark; state.marks[a]=state.marks[a]===m?null:m; render(true)});
+  app.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=()=>{
+    const a=+btn.dataset.del; state.boards.splice(a,1); state.marks.splice(a,1); render(true)});
+  app.querySelectorAll("[data-clr]").forEach(btn=>btn.onclick=()=>{state.boards[0]=Array(n).fill(-1);state.marks[0]=null;render(true)});
+  const add=document.getElementById("addArr"); if(add) add.onclick=()=>{state.boards.push(Array(n).fill(-1));state.marks.push(null);render(true)};
+}
+
+render();
+</script>
+</body>
+</html>
