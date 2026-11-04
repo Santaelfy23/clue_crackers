@@ -153,6 +153,17 @@ table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
 .stars{font-family:var(--font-display);font-size:1.3rem;color:var(--manila)}
 .grownups{color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px;display:grid;gap:6px}
 @media (prefers-reduced-motion:no-preference){.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-6deg) scale(1.6);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}}
+.tutor-cta{display:flex;gap:12px;align-items:center;text-align:left;background:color-mix(in srgb,var(--ok) 14%,var(--desk));border:2px solid var(--ok);border-radius:12px;padding:12px 14px;color:var(--fg)}
+.tutor-cta b{display:block;font-size:1.05rem}.tutor-cta small{color:var(--muted)}
+.owl{font-size:2rem;line-height:1}
+.coach{display:flex;gap:10px;align-items:flex-start;background:var(--raised);border-radius:12px;padding:12px 14px}
+.coach p{margin:0}
+.tpuz{border-left:3px solid var(--btn);padding:8px 12px;background:color-mix(in srgb,var(--btn) 8%,var(--desk));border-radius:4px}
+.tpuz ul{margin:6px 0;padding-left:1.2em}
+.tprog{height:8px;background:var(--line);border-radius:99px;overflow:hidden}.tprog span{display:block;height:100%;background:var(--ok);transition:width .3s}
+.board.tb .seat{cursor:default}.board.tb button.seat{cursor:pointer}
+.linkbtn{background:none;border:0;color:var(--manila);text-decoration:underline;padding:0;font:inherit}
+.cell{display:inline-grid;place-items:center}
 .folder h2{padding-right:96px}
 p.tq{font-weight:700;font-size:1.08rem;border-left:3px solid var(--btn);padding:6px 12px}
 svg.pie{display:block;width:min(220px,70%);margin:6px auto}
@@ -175,7 +186,7 @@ table.lgrid th.rh{text-align:left;color:var(--fg);font-weight:700;white-space:no
 table.lgrid th.ch{vertical-align:bottom;max-width:64px}
 table.lgrid th.ch span{display:block;line-height:1.15}
 .cell{width:100%;min-width:32px;height:36px;border:0;background:var(--raised);font-weight:700;font-size:1rem}
-.cell.v1{color:var(--stamp)} .cell.v2{color:var(--ok)}
+.cell.bad{color:var(--stamp)} .cell.good{color:var(--ok)}
 td.cnt{font-weight:700;color:var(--manila);min-width:38px}
 </style>
 </head>
@@ -1332,7 +1343,7 @@ const L="ABCDE";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(stay){
   const y=window.scrollY; setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
-  ({home,brief,puzzle,end:endView,accuse})[state.view]();
+  ({home,brief,puzzle,end:endView,accuse,tutor})[state.view]();
 }
 function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
 
@@ -1393,6 +1404,7 @@ function brief(){
   app.innerHTML=`
   <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
   <section class="card"><p class="label">${c.tab} · Briefing</p><h2>${esc(c.title)}</h2>
+    ${TUT[c.id]?`<button class="tutor-cta" id="tut"><span class="owl" aria-hidden="true">🦉</span><span><b>Show me how — step by step</b><small>Inspector Owl works through a puzzle with you</small></span></button>`:""}
     <p class="label">The detective's rule — say it out loud</p>
     <div class="rule">${esc(c.rule)}</div>
     <h3>How a good detective does it</h3>
@@ -1406,6 +1418,7 @@ function brief(){
     <p class="hint">${c.gen?"New puzzles are made up fresh every time, and checked by a solver — there's no end to them!":"Each round picks a mix of 6 from the puzzle bank."}</p>`}
   </section>`;
   back();
+  const tu=document.getElementById("tut"); if(tu) tu.onclick=()=>startTutor(state.ci);
   app.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{state.level=+b.dataset.l;render(true)});
   const go=document.getElementById("go"); if(go) go.onclick=()=>startCase(state.ci,state.level,false);
   const og=document.getElementById("orig"); if(og) og.onclick=()=>startCase(state.ci,1,true);
@@ -1440,11 +1453,13 @@ function puzzle(){
     ${fb}
     <div class="clues">${p.clues.slice(0,state.shown).map((t,i)=>`<div class="clue"><span class="label">Clue ${i+1}</span><br>${esc(t)}</div>`).join("")}</div>
     ${state.shown<p.clues.length&&!locked?`<div class="row"><button class="btn ghost" id="clue">Need a clue? (${p.clues.length-state.shown} left)</button></div>`:""}
+    ${TUT[c.id]?`<p class="hint">Stuck on the method? <button class="linkbtn" id="howto">🦉 Show me how, step by step</button> (your progress in this round is saved).</p>`:""}
   </section>`;
   back();
   app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.i));
   const cl=document.getElementById("clue"); if(cl) cl.onclick=()=>{state.shown++;render(true)};
   const nx=document.getElementById("next"); if(nx) nx.onclick=next;
+  const ht=document.getElementById("howto"); if(ht) ht.onclick=()=>startTutor(state.ci);
   if(p.board) wireBoard(p.board);
 }
 function choose(i){
@@ -1510,6 +1525,185 @@ function accuse(){
     render(true)});
 }
 
+/* ----- step-by-step guided walkthroughs ("Show me how") ----- */
+const ROWB=(names,labels)=>({type:"row",names,labels});
+const TUT={
+seats:{title:"How to crack seating puzzles",steps:[
+ {ch:"Part 1 · A row of seats",say:"Let's do one together. Read the puzzle first.",puzzle:"Amir, Bea, Cal and Dot sit in a row of 4 seats, numbered 1 to 4 from left to right. They face the same way as you.<ul><li>Dot sits at the right-hand end.</li><li>Amir sits next to Dot, on Dot's left.</li><li>Bea is not next to Amir.</li></ul><b>Who is in seat 2?</b>",
+  board:ROWB(["Amir","Bea","Cal","Dot"]),show:[-1,-1,-1,-1],note:"Step 1 of the rule: <b>draw the seats</b>. Here they are, empty."},
+ {say:"Step 2: put the FIXED facts in first. Which clue tells us exactly where someone sits?",ask:["Dot sits at the right-hand end.","Amir sits next to Dot.","Bea is not next to Amir."],a:0,
+  no:[null,"That only says Amir is near Dot — we don't know where Dot is yet.","That says where Bea ISN'T, not where she is."],ok:"Yes! The right-hand end is seat 4.",after:[-1,-1,-1,3]},
+ {say:"Dot is in seat 4. “Amir sits next to Dot, on Dot's left.” They face the same way as you, so their left is your left. Which seat is Amir in?",ask:["Seat 3","Seat 1","Seat 2"],a:0,
+  no:[null,"Seat 1 isn't next to Dot.","Seat 2 isn't next to Dot (seat 4)."],ok:"Right — seat 3 is next to seat 4, on the left.",show:[-1,-1,-1,3],after:[-1,-1,0,3]},
+ {say:"Now the “not” clue: “Bea is not next to Amir.” Which seat can Bea NOT sit in?",ask:["Seat 2","Seat 1"],a:0,no:[null,"Seat 1 isn't next to Amir (seat 3), so Bea could sit there."],ok:"Exactly. So Bea must be in seat 1.",show:[-1,-1,0,3],after:[1,-1,0,3]},
+ {say:"Only one person and one seat are left. Who is in seat 2?",ask:["Cal","Bea","Amir"],a:0,no:[null,"Bea is in seat 1.","Amir is in seat 3."],ok:"Case cracked! Bea, Cal, Amir, Dot. Notice we used EVERY clue.",show:[1,-1,0,3],after:[1,2,0,3]},
+ {ch:"Part 2 · The big trap",say:"This one has a trap. Read it carefully.",puzzle:"Ella, Finn, Gus and Hana sit in a row, facing the same way as you.<ul><li>Hana is not at either end.</li><li>Finn sits next to Ella, on Ella's left.</li></ul><b>Who is sitting on Hana's right?</b><br>A Finn · B Gus · C Ella · D <b>It is not possible to tell</b>",
+  board:ROWB(["Ella","Finn","Gus","Hana"]),show:[-1,-1,-1,-1],note:"See option D? That's our signal: there might be more than one arrangement."},
+ {say:"“Hana is not at either end.” Which seats could Hana be in?",ask:["Seat 2 or seat 3","Seat 1 or seat 4","Only seat 2"],a:0,no:[null,"Those ARE the ends!","Seat 3 isn't an end either."],ok:"Yes — two choices. So we must try BOTH."},
+ {say:"Let's try Hana in seat 2 first. Finn sits just to the left of Ella. Build it yourself: tap each seat to change the name.",fill:[[2,3,1,0]],show:[-1,3,-1,-1],
+  hint:"Hana is in seat 2. Finn and Ella must sit together with Finn on the left, so they need seats 3 and 4. Gus gets what's left.",ok:"Arrangement 1: Gus, Hana, Finn, Ella. It fits every clue ✅"},
+ {say:"In arrangement 1, who is on Hana's right?",ask:["Finn","Gus","Ella"],a:0,no:[null,"Gus is on Hana's LEFT (seat 1).","Ella is two seats away."],ok:"Finn. Most people stop here and choose Finn… but option D is there, so we check for another arrangement!",show:[2,3,1,0]},
+ {say:"Now try Hana in seat 3. Build arrangement 2.",fill:[[1,0,3,2]],show:[-1,-1,3,-1],hint:"Hana is in seat 3. Finn–Ella need two seats side by side: only seats 1 and 2 are free together. Gus goes in seat 4.",ok:"Arrangement 2: Finn, Ella, Hana, Gus. Does it fit every clue? Hana isn't at an end ✅, Finn is just left of Ella ✅. It fits too!"},
+ {say:"In arrangement 2, who is on Hana's right?",ask:["Gus","Finn","Ella"],a:0,no:[null,"Finn is in seat 1 now.","Ella is on Hana's LEFT."],ok:"Gus!",show:[1,0,3,2]},
+ {say:"Two arrangements fit every clue. One says Finn, the other says Gus. So the answer is…",ask:["Finn","Gus","It is not possible to tell"],a:2,no:["Only true in arrangement 1.","Only true in arrangement 2.",null],ok:"Brilliant! Two ✅ that give different answers = NOT POSSIBLE TO TELL. That's exactly the trap from Q10 in your test."},
+ {ch:"Part 3 · Round tables",say:"Last part: left and right in a circle.",puzzle:"Ivy, Jay, Kit and Leo sit round a table, facing the middle.<ul><li>Ivy sits opposite Jay.</li><li>Kit sits on Ivy's left.</li></ul><b>Who sits on Jay's left?</b>",
+  board:{type:"circle",names:["Ivy","Jay","Kit","Leo"]},show:[-1,-1,-1,-1],note:"The arrows show everyone facing the middle."},
+ {say:"Trick: put Ivy at the BOTTOM. She faces up the page — the same way you're facing. So Ivy's left is on…",ask:["Your left","Your right"],a:0,no:[null,"She faces the same way as you, so her left is YOUR left."],ok:"Yes!",after:[0,-1,-1,-1]},
+ {say:"Jay is opposite Ivy, and Kit is on Ivy's left. Where do they go?",ask:["Jay at the top, Kit on the left side","Jay at the top, Kit on the right side","Jay on the left, Kit at the top"],a:0,no:[null,"Ivy's left is YOUR left, so Kit goes on the left side.","Opposite Ivy (the bottom) is the top."],ok:"Perfect. Leo takes the last seat, on the right.",show:[0,-1,-1,-1],after:[0,2,1,3]},
+ {say:"Now the tricky bit. Jay is at the TOP, facing DOWN towards you. So Jay's left is on…",ask:["Your right","Your left"],a:0,no:[null,"Jay faces you, like someone standing opposite you. Their left is on your right!"],ok:"Exactly — people at the top are back to front.",show:[0,2,1,3]},
+ {say:"So who sits on Jay's left?",ask:["Leo","Kit","Ivy"],a:0,no:[null,"Kit is on your left — that's Jay's RIGHT.","Ivy is opposite Jay."],ok:"Leo! You've learned all three tricks: fixed facts first, check for a second arrangement, and turn the circle so left and right are easy.",show:[0,2,1,3]}
+]},
+rank:{title:"How to crack ranking puzzles",steps:[
+ {say:"Here's the kind that caught you out on Atom.",puzzle:"Ela is older than Lucy and Hatty. Hatty is younger than Lucy.<br><b>Who is the youngest?</b>",board:ROWB(["Ela","Hatty","Lucy"],["Oldest","Middle","Youngest"]),show:[-1,-1,-1],note:"Draw a ladder: OLDEST at the top (left), YOUNGEST at the bottom (right)."},
+ {say:"“Ela is older than Lucy and Hatty.” Where does Ela go?",ask:["At the top (oldest)","In the middle","At the bottom (youngest)"],a:0,no:[null,"She's older than BOTH others.","“Older than” puts her ABOVE them."],ok:"Yes — Ela is the oldest.",after:[0,-1,-1]},
+ {say:"“Hatty is younger than Lucy.” “Younger” is a FLIP-WORD. Say it out loud: Hatty is ___ Lucy.",ask:["BELOW","ABOVE"],a:0,no:[null,"Younger means lower on the age ladder — BELOW."],ok:"Hatty is BELOW Lucy. So Lucy goes in the middle and Hatty at the bottom.",show:[0,-1,-1],after:[0,2,1]},
+ {say:"Who is the youngest?",ask:["Hatty","Lucy","Ela"],a:0,no:[null,"Lucy is older than Hatty.","Ela is the oldest!"],ok:"Hatty!",show:[0,2,1]},
+ {say:"Always check: read the clue back with your answer in it. “Hatty is younger than Lucy.” Could Lucy be the youngest?",ask:["No — Hatty is younger than her","Yes"],a:0,no:[null,"If Hatty is younger than Lucy, Lucy can't be the youngest."],ok:"That 5-second check catches flip-word mistakes. Flip-words: younger, shorter, slower, lower, “not as … as”."},
+ {say:"For “which MUST be true?” questions, build one order, then try to build a DIFFERENT order that also fits. The answer must be true in every order.",ask:["Got it!"],a:0,ok:"Great. Use “+ Try another arrangement” on the scratch board to do this."}
+]},
+liars:{title:"How to crack liar puzzles",steps:[
+ {say:"Read the puzzle.",puzzle:"Someone left the art-room tap running.<ul><li><b>Ben:</b> “It wasn't Zac.”</li><li><b>Fay:</b> “Zac did it.”</li><li><b>Zac:</b> “Fay did it.”</li></ul>Exactly ONE of them is lying.<br><b>Who left the tap running?</b>",
+  board:{type:"grid",rows:["If Ben did it","If Fay did it","If Zac did it"],cols:["Ben says","Fay says","Zac says"],values:["","T","F"],countF:true},show:[0,0,0,0,0,0,0,0,0],
+  note:"The method: <b>pretend each person did it</b>, mark every statement T (true) or F (false), and count the lies. We want the row with exactly 1 lie."},
+ {say:"Pretend BEN did it. Ben says “It wasn't Zac.” True or false?",ask:["True","False"],a:0,no:[null,"If Ben did it, then it really wasn't Zac — so it's true."],ok:"True.",after:[1,0,0,0,0,0,0,0,0]},
+ {say:"Still pretending Ben did it. Fay says “Zac did it.”",ask:["False","True"],a:0,no:[null,"Ben did it (we're pretending), so Zac didn't."],ok:"False.",show:[1,0,0,0,0,0,0,0,0],after:[1,2,0,0,0,0,0,0,0]},
+ {say:"Zac says “Fay did it.”",ask:["False","True"],a:0,no:[null,"We're pretending Ben did it, not Fay."],ok:"False. That's 2 lies — but we need exactly 1. So Ben ❌.",show:[1,2,0,0,0,0,0,0,0],after:[1,2,2,0,0,0,0,0,0]},
+ {say:"Now pretend FAY did it. Mark all three statements. How many lies?",ask:["1 lie (Fay's)","2 lies","0 lies"],a:0,no:[null,"Check again: Ben “It wasn't Zac” = T, Fay “Zac did it” = F, Zac “Fay did it” = T.","Fay's own statement “Zac did it” is false."],ok:"T, F, T → exactly 1 lie ✅",show:[1,2,2,0,0,0,0,0,0],after:[1,2,2,1,2,1,0,0,0]},
+ {say:"Do we still need to check Zac?",ask:["Yes — to make sure only one row fits","No"],a:0,no:[null,"Always check every row, just like checking for a second arrangement."],ok:"If Zac did it: F, T, F → 2 lies ❌. Only one row has 1 lie.",show:[1,2,2,1,2,1,0,0,0],after:[1,2,2,1,2,1,2,1,2]},
+ {say:"So who left the tap running?",ask:["Fay","Ben","Zac"],a:0,no:[null,"Ben's row had 2 lies.","Zac's row had 2 lies."],ok:"Fay! Pretend, mark T/F, count — that's the whole method.",show:[1,2,2,1,2,1,2,1,2]}
+]},
+grid:{title:"How to crack logic grids",steps:[
+ {say:"Read the puzzle.",puzzle:"Ali, Bo and Cy each have a different pet: a cat, a dog and a fish.<ul><li>Bo has the cat.</li><li>Ali does not have the dog.</li></ul><b>Who has the dog?</b>",
+  board:{type:"grid",rows:["Ali","Bo","Cy"],cols:["cat","dog","fish"],values:["","✗","✓"]},show:[0,0,0,0,0,0,0,0,0],note:"✓ means “yes, definitely”. ✗ means “no”."},
+ {say:"“Bo has the cat.” Where does the ✓ go?",ask:["Bo's row, cat column","Ali's row, cat column","Bo's row, dog column"],a:0,no:[null,"The clue is about Bo.","Bo has the CAT."],ok:"Yes!",after:[0,0,0,2,0,0,0,0,0]},
+ {say:"Each pet belongs to only ONE person. So the rest of the cat column — and the rest of Bo's row — get…",ask:["✗","✓"],a:0,no:[null,"Only one ✓ per row and per column."],ok:"✗ everywhere else in that row and column.",show:[0,0,0,2,0,0,0,0,0],after:[1,0,0,2,1,1,1,0,0]},
+ {say:"“Ali does not have the dog.” What goes in Ali's dog box?",ask:["✗","✓"],a:0,no:[null,"“Does NOT have” means ✗."],ok:"✗.",show:[1,0,0,2,1,1,1,0,0],after:[1,1,0,2,1,1,1,0,0]},
+ {say:"Ali's row has only ONE empty box left. So Ali has the…",ask:["fish","dog","cat"],a:0,no:[null,"Ali's dog box has a ✗.","Bo has the cat."],ok:"Fish ✓. Then Cy's fish box gets ✗…",show:[1,1,0,2,1,1,1,0,0],after:[1,1,2,2,1,1,1,0,1]},
+ {say:"So who has the dog?",ask:["Cy","Ali","Bo"],a:0,no:[null,"Ali has the fish.","Bo has the cat."],ok:"Cy! The secret: every ✓ gives you free ✗s in its row and column.",show:[1,1,2,2,1,1,1,2,1]}
+]},
+logic:{title:"How to crack “must be true” logic",steps:[
+ {say:"Read the statement.",puzzle:"“Every member of the school choir can read music.”<br><b>Which must be true?</b>"},
+ {say:"Step 1: write it as an ARROW. Which arrow is right?",ask:["Choir ➜ Reads music","Reads music ➜ Choir"],a:0,no:[null,"The statement starts with choir members, so the arrow starts at Choir."],ok:"Choir ➜ Reads music."},
+ {say:"Zara can read music. Does that mean she's in the choir?",ask:["No — arrows only go forwards","Yes"],a:0,no:[null,"That turns the arrow round! Lots of people read music without being in the choir."],ok:"Right. Never turn an arrow round."},
+ {say:"Leo CAN'T read music. The backwards trick: flip the arrow AND add “not”. Which is right?",ask:["Not reads music ➜ Not choir","Not choir ➜ Not reads music"],a:0,no:[null,"Flip it AND add not: Not reads music ➜ Not choir."],ok:"Yes!"},
+ {say:"So which must be true?",ask:["Leo is not in the choir.","Zara is in the choir.","Everyone who reads music is in the choir."],a:0,no:[null,"Arrow turned round.","Arrow turned round again."],ok:"That's Q6 from your test (Harry the builder) — same pattern."},
+ {say:"Chains: “Everyone who plays chess plays draughts. Nobody who plays draughts plays snap.” Join the arrows: Chess ➜ Draughts ➜ Not snap. Di plays chess. What do we know?",ask:["Di doesn't play snap","Di plays snap","Nothing"],a:0,no:[null,"Follow the chain: chess ➜ draughts ➜ NOT snap.","Follow the chain forwards!"],ok:"Follow the chain forwards."},
+ {say:"Watch out for “only”: “Only pupils who finish their homework can go on the trip.” Which arrow?",ask:["Went on trip ➜ Finished homework","Finished homework ➜ Went on trip"],a:0,no:[null,"“Only X can do Y” means Y ➜ X. Finishing homework lets you go — it doesn't mean you went."],ok:"“Only X can do Y” means Y ➜ X. And remember: circle the word NOT in any question!"}
+]},
+args:{title:"How to crack argument questions",steps:[
+ {say:"Read the argument.",puzzle:"The head teacher says: “Opening the library at lunchtime will help pupils read more.”<br><b>Which most strengthens her argument?</b>"},
+ {say:"Step 1: find the CLAIM. What is she saying?",ask:["Library open at lunch ➜ pupils read more","Libraries are nice","Reading is good for you"],a:0,no:[null,"That's not what she's claiming.","True, but that's not her claim."],ok:"Underline that."},
+ {say:"Test this option: “Reading is good for you.” Does it make HER claim more likely?",ask:["No — it's true, but it doesn't link lunchtime opening to more reading","Yes"],a:0,no:[null,"It's a nice fact, but it's about something else. This is the “nice fact” trap (Q38)."],ok:"That's the trap!"},
+ {say:"Test this one: “Many pupils say they would read at lunchtime if they had somewhere quiet to go.”",ask:["Yes — it links the change to the result","No"],a:0,no:[null,"It shows opening at lunch WOULD lead to more reading."],ok:"That's the answer."},
+ {say:"To WEAKEN a claim, look for…",ask:["Another explanation, or a fact that makes it less likely","A nice fact about the same topic"],a:0,no:[null,"Nice facts don't weaken anything."],ok:"Say it out loud each time: “Does this make THIS claim more (or less) likely?”"}
+]},
+court:{title:"How to find assumptions and conclusions",steps:[
+ {say:"Read it.",puzzle:"Tom says: “I'll be on time for school, because I'm leaving at my normal time.”<br><b>What is Tom assuming?</b>"},
+ {say:"Find the reason and the claim.",ask:["Reason: leaving at normal time. Claim: on time.","Reason: on time. Claim: leaving."],a:0,no:[null,"The reason comes after “because”."],ok:"An assumption is the hidden link between them."},
+ {say:"Take-away test: if “the journey will take as long as usual” were FALSE (say, a traffic jam), would Tom still be on time?",ask:["No — the argument falls apart","Yes"],a:0,no:[null,"With a traffic jam, leaving at the normal time could make him late."],ok:"So it's an assumption he's making!"},
+ {say:"For “best conclusion” questions, watch the strong words. The facts say plants “need sunlight to grow well”. Which conclusion is safest?",ask:["The plant would probably grow better in sunlight","All plants in cupboards die","The plant definitely needs water"],a:0,no:[null,"“All” is far too strong.","Water isn't mentioned."],ok:"Careful words (probably, might) are usually right. Strong words (definitely, all, only) are usually traps."}
+]},
+flaws:{title:"How to spot a flaw",steps:[
+ {say:"Read it.",puzzle:"“My brother has never been stung by a bee, so bees don't sting.”<br><b>What is wrong with this argument?</b>"},
+ {say:"Does one person's experience prove something about ALL bees?",ask:["No — too few examples","Yes"],a:0,no:[null,"One example can't prove something about every bee."],ok:"Flaw: too few examples."},
+ {say:"“Ice cream sales and sunburn both go up in summer, so ice cream causes sunburn.” What's the flaw?",ask:["Something else (sunny weather) causes both","Ice cream is cold"],a:0,no:[null,"True, but it doesn't explain the mistake."],ok:"Happening together ≠ one causes the other."},
+ {say:"“Either we get a dog or we'll never have fun again.” What's the flaw?",ask:["It pretends there are only two choices","Dogs are fun"],a:0,no:[null,"That's a fact, not the flaw."],ok:"False choice! The right answer always explains WHY the reasoning fails."}
+]},
+vault:{title:"How to crack balance puzzles",steps:[
+ {say:"Read it.",puzzle:"<ul><li>2 bananas balance 1 pineapple.</li><li>1 melon balances 1 pineapple and 2 bananas.</li></ul><b>1 melon and 1 pineapple balance how many bananas?</b>"},
+ {say:"Turn everything into the smallest thing (bananas). 1 pineapple = ?",ask:["2 bananas","1 banana","4 bananas"],a:0,no:[null,"Line 1 says 2 bananas balance 1 pineapple.","Look at line 1 again."],ok:"Yes."},
+ {say:"1 melon = 1 pineapple + 2 bananas. Swap the pineapple for bananas. 1 melon = ?",ask:["4 bananas","3 bananas","2 bananas"],a:0,no:[null,"1 pineapple is 2 bananas, plus 2 more.","Don't forget the pineapple!"],ok:"2 + 2 = 4."},
+ {say:"So 1 melon + 1 pineapple = ?",ask:["6 bananas","4 bananas","5 bananas"],a:0,no:[null,"Add the pineapple too.","4 + 2 = ?"],ok:"6!"},
+ {say:"Harder ones: you can take the SAME things off both sides, like a real balance. “4 apples and 1 pear balance 2 apples and 2 pears.” Take off 2 apples and 1 pear from both sides. What's left?",ask:["2 apples = 1 pear","4 apples = 2 pears","1 apple = 1 pear"],a:0,no:[null,"Take them off BOTH sides.","Check again: 4−2 apples, 2−1 pears."],ok:"That's the trick for Q16 and Q30 in your test."}
+]},
+safe:{title:"How to find smallest totals",steps:[
+ {say:"Read it.",puzzle:"A car park has red, black and silver cars (at least one of each).<ul><li>More red than black, more black than silver.</li><li>Twice as many red cars as silver cars.</li></ul><b>Smallest total?</b>"},
+ {say:"Start the smallest group at 1. Silver = 1, so red = 2. Black must be MORE than 1 and LESS than 2. Possible?",ask:["No — there's no whole number between 1 and 2","Yes"],a:0,no:[null,"Black can't be 1.5 cars!"],ok:"So try silver = 2."},
+ {say:"Silver = 2, so red = 4. Black must be between 2 and 4. Black = ?",ask:["3","2","4"],a:0,no:[null,"Black must be MORE than silver.","Black must be LESS than red."],ok:"Red 4, black 3, silver 2."},
+ {say:"Smallest total?",ask:["9","8","6"],a:0,no:[null,"4 + 3 + 2 = ?","Add all three colours."],ok:"9! Start small and build up."},
+ {say:"Shares: 20 sweets, 3 children, everyone gets a different number. Biggest the SMALLEST share could be? Make them close: 6+7+8 = 21 (too many). 5+6+7 = 18, add 2 to the biggest → 5, 6, 9. Smallest share = ?",ask:["5","6","7"],a:0,no:[null,"6+7+8 is 21 — too many.","Too big."],ok:"5. Numbers in a row, then adjust the last one."}
+]},
+count:{title:"How to crack counting puzzles",steps:[
+ {say:"Read it (it's like Q3 in your test).",puzzle:"26 families. 3 have no car. No family has more than two cars. There are 29 cars altogether.<br><b>How many families have just one car?</b>"},
+ {say:"How many families have at least one car?",ask:["23","26","29"],a:0,no:[null,"Take away the 3 with no car.","That's the number of cars!"],ok:"26 − 3 = 23."},
+ {say:"Imagine those 23 families each have 1 car. That's 23 cars. How many cars are left over?",ask:["6","3","29"],a:0,no:[null,"29 − 23 = ?","Take away the 23."],ok:"6 extra cars — each belongs to a two-car family."},
+ {say:"So how many families have just one car?",ask:["17","6","23"],a:0,no:[null,"6 have TWO cars.","Some of the 23 have two cars."],ok:"23 − 6 = 17. Always write it out — don't stop after the first step!"},
+ {say:"Shop offers: “Buy 2, get a 3rd half price”, boxes £10, you need 4. Cost?",ask:["£35","£40","£30"],a:0,no:[null,"The 3rd box is half price.","Only ONE box is cheaper."],ok:"£10 + £10 + £5 + £10 = £35. Work out exactly what's needed at each shop."}
+]},
+tense:{title:"How to crack tense questions",steps:[
+ {say:"Read it.",puzzle:"“She has studied Spanish since she was eight.”<br><b>Which other sentence must be true?</b>"},
+ {say:"Question 1: WHEN? “has studied … since” means…",ask:["It started in the past and is still going on","It's finished","It's in the future"],a:0,no:[null,"“Has … since” means it hasn't stopped.","Nothing here is in the future."],ok:"Still going on!"},
+ {say:"“She'll study Spanish when she turns eight.” Keep or cross out?",ask:["Cross out — it moves it to the future","Keep"],a:0,no:[null,"“She'll” is the future."],ok:"❌"},
+ {say:"“She studied Spanish for eight years.” Keep or cross out?",ask:["Cross out — it sounds finished AND adds “eight years”","Keep"],a:0,no:[null,"The sentence never says how many years."],ok:"❌ — that was your Atom mistake!"},
+ {say:"So which must be true?",ask:["She still studies Spanish.","She no longer studies Spanish.","She has been studying Spanish for eight years."],a:0,no:[null,"“Has studied … since” means she still does.","Adds a number we don't know."],ok:"✅"},
+ {say:"Question 3: ORDER. “While the dough is rising, Erin will wash the dishes.” “While” means…",ask:["At the same time","After","Before"],a:0,no:[null,"Not after — that was the trap!","Not before."],ok:"Three questions every time: When? Finished? What order?"}
+]}
+};
+function cellCls(v){return v==="✓"||v==="T"?"good":v==="✗"||v==="F"?"bad":""}
+function tBoard(b,arr,fill){
+  if(!b) return "";
+  if(b.type==="grid"){
+    const C=b.cols.length;let h=`<div class="scroll"><table class="lgrid"><tr><th></th>${b.cols.map(c=>`<th class="ch"><span>${esc(c)}</span></th>`).join("")}${b.countF?`<th class="ch"><span>Lies</span></th>`:""}</tr>`;
+    b.rows.forEach((r,ri)=>{h+=`<tr><th class="rh">${esc(r)}</th>`;for(let c=0;c<C;c++){const v=arr[ri*C+c];h+=`<td><span class="cell ${cellCls(b.values[v])}">${b.values[v]}</span></td>`}
+      if(b.countF){const row=arr.slice(ri*C,ri*C+C);const f=row.filter(v=>b.values[v]==="F").length;h+=`<td class="cnt">${row.every(v=>v)?f+(f===1?" ✅":" ❌"):""}</td>`}h+=`</tr>`});
+    return `<div class="board tb">${h}</table></div></div>`;
+  }
+  const n=b.names.length;
+  const seat=(i,label)=>{const v=arr[i];return fill?`<button class="seat ${v>=0?"filled":""}" data-tf="${i}">${v>=0?esc(b.names[v]):"?"}<small>${label}</small></button>`
+    :`<div class="seat ${v>=0?"filled":""}">${v>=0?esc(b.names[v]):"?"}<small>${label}</small></div>`};
+  if(b.type==="row"){const labels=b.labels||b.names.map((_,i)=>"Seat "+(i+1));
+    return `<div class="board tb"><div class="seats-row" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${labels.map((l,i)=>seat(i,l)).join("")}</div>${b.labels?"":`<div class="ends"><span>← left</span><span>right →</span></div>`}</div>`}
+  let seats="",arrows="";
+  for(let i=0;i<n;i++){const ang=Math.PI/2+i*2*Math.PI/n,x=50+38*Math.cos(ang),y=50+38*Math.sin(ang);
+    arrows+=`<line x1="${50+24*Math.cos(ang)}" y1="${50+24*Math.sin(ang)}" x2="${50+14*Math.cos(ang)}" y2="${50+14*Math.sin(ang)}" stroke="var(--muted)" stroke-width="1" marker-end="url(#tah)"/>`;
+    seats+=`<div style="position:absolute;left:${x}%;top:${y}%">${seat(i,i===0?"bottom":i===n/2?"top":"seat")}</div>`}
+  return `<div class="board tb"><div class="circle-box"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="tah" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 z" fill="var(--muted)"/></marker></defs><circle cx="50" cy="50" r="27" fill="none" stroke="var(--line)" stroke-width="1"/>${arrows}</svg>${seats}</div><div class="ends"><span>← your left</span><span>your right →</span></div></div>`;
+}
+function startTutor(ci){state={view:"tutor",ci,ts:0,tok:false,tno:null,tfill:null,tb:null,tpuz:null,tarr:null};tutorStep();render()}
+function tutorStep(){
+  const T=TUT[CASES[state.ci].id], s=T.steps[state.ts];
+  if(s.board){state.tb=s.board}
+  if(s.puzzle){state.tpuz=s.puzzle}
+  if(s.show) state.tarr=s.show.slice();
+  if(!state.tarr&&state.tb) state.tarr=state.tb.type==="grid"?Array(state.tb.rows.length*state.tb.cols.length).fill(0):Array(state.tb.names.length).fill(-1);
+  state.tok=!s.ask&&!s.fill; state.tno=null; state.tpicked=[];
+  state.tfill=s.fill?(s.show||state.tarr).slice():null;
+}
+function tutor(){
+  const c=CASES[state.ci], T=TUT[c.id], s=T.steps[state.ts], N=T.steps.length, last=state.ts===N-1;
+  const coach=(playerName?esc(playerName)+", ":"")+s.say;
+  let task="";
+  if(s.ask) task=`<div class="opts">${s.ask.map((o,i)=>{const cls=state.tok&&i===s.a?"right":state.tpicked.includes(i)?"wrong":"";
+    return `<button class="opt ${cls}" data-ta="${i}" ${state.tok||state.tpicked.includes(i)?"disabled":""}><b>${L[i]}</b><span>${esc(o)}</span></button>`}).join("")}</div>`;
+  if(s.fill&&!state.tok) task=`<p class="hint">Tap a seat to change the name. The locked name is already in place.</p><div class="row"><button class="btn" id="tcheck">Check my arrangement</button><button class="btn ghost" id="thint">Show me</button></div>`;
+  const fb=state.tok&&(s.ok)?`<div class="fb good"><strong class="pop-in">✓ ${s.ask||s.fill?"That's it!":""}</strong><p>${esc(s.ok||"")}</p></div>`
+    :state.tno?`<div class="fb bad"><strong>Not quite</strong><p>${esc(state.tno)}</p><p>Try again!</p></div>`:"";
+  app.innerHTML=`
+  <div class="row" style="justify-content:space-between"><button class="btn ghost" id="tback">← Back to the briefing</button><span class="hint">Step ${state.ts+1} of ${N}</span></div>
+  <section class="card">
+    <p class="label">🎓 Show me how · ${esc(c.tab)}</p><h2>${esc(T.title)}</h2>
+    <div class="tprog"><span style="width:${Math.round((state.ts+(state.tok?1:0))/N*100)}%"></span></div>
+    ${s.ch?`<p class="label">${esc(s.ch)}</p>`:""}
+    ${state.tpuz?`<div class="tpuz">${state.tpuz}</div>`:""}
+    ${state.tb?tBoard(state.tb,state.tfill&&!state.tok?state.tfill:(state.tok&&s.after?s.after:state.tarr),!!(state.tfill&&!state.tok)):""}
+    ${s.note?`<p class="hint">${s.note}</p>`:""}
+    <div class="coach"><span class="owl" aria-hidden="true">🦉</span><p><b>Inspector Owl:</b> ${coach}</p></div>
+    ${task}${fb}
+    ${state.tok?`<div class="row">${last?`<button class="btn" id="tgo">🔍 Now you try — start the case</button><button class="btn ghost" id="tagain">Go through it again</button>`:`<button class="btn" id="tnext">Next step →</button>`}</div>`:""}
+  </section>`;
+  document.getElementById("tback").onclick=()=>{state={view:"brief",ci:state.ci,level:unlockedLevel(c)};render()};
+  app.querySelectorAll("[data-ta]").forEach(b=>b.onclick=()=>{const i=+b.dataset.ta;
+    if(i===s.a){state.tok=true;state.tno=null;if(s.after)state.tarr=s.after.slice();chime(true)}else{state.tpicked.push(i);state.tno=(s.no&&s.no[i])||"Have another look at the clue.";chime(false)}render(true)});
+  app.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{const i=+b.dataset.tf;if(s.show&&s.show[i]>=0)return;
+    let v=state.tfill[i]+1;if(v>=state.tb.names.length)v=-1;state.tfill[i]=v;render(true)});
+  const ck=document.getElementById("tcheck"); if(ck) ck.onclick=()=>{const okk=s.fill.some(t=>t.every((v,i)=>v===state.tfill[i]));
+    if(okk){state.tok=true;state.tno=null;state.tarr=state.tfill.slice();confetti();chime(true)}else{state.tno=s.hint;chime(false)}render(true)};
+  const hn=document.getElementById("thint"); if(hn) hn.onclick=()=>{state.tfill=s.fill[0].slice();state.tok=true;state.tno=null;state.tarr=state.tfill.slice();render(true)};
+  const nx=document.getElementById("tnext"); if(nx) nx.onclick=()=>{state.ts++;tutorStep();render()};
+  const go=document.getElementById("tgo"); if(go) go.onclick=()=>{confetti();const first=!progress[c.id]&&c.puzzles;startCase(state.ci,1,!!first)};
+  const ag=document.getElementById("tagain"); if(ag) ag.onclick=()=>startTutor(state.ci);
+}
+
 /* ----- scratch boards: rows, circles and grids ----- */
 function boardHTML(b,p){
   if(b.type==="grid") return gridHTML(b);
@@ -1548,7 +1742,7 @@ function gridHTML(b){
   h+=`<tr><th></th>${b.cols.map(c=>`<th class="ch"><span>${esc(colLab(c))}</span></th>`).join("")}${b.countF?`<th class="ch"><span>Lies</span></th>`:""}</tr>`;
   for(let r=0;r<R;r++){
     h+=`<tr><th class="rh">${esc(b.rows[r])}</th>`;
-    for(let c=0;c<C;c++){const v=b.values[g[r*C+c]];h+=`<td><button class="cell v${g[r*C+c]}" data-cell="${r*C+c}" aria-label="${esc(b.rows[r])}, ${esc(colLab(b.cols[c]))}: ${v||"empty"}">${v}</button></td>`}
+    for(let c=0;c<C;c++){const v=b.values[g[r*C+c]];h+=`<td><button class="cell ${cellCls(v)}" data-cell="${r*C+c}" aria-label="${esc(b.rows[r])}, ${esc(colLab(b.cols[c]))}: ${v||"empty"}">${v}</button></td>`}
     if(b.countF){const f=b.cols.reduce((t,_,c)=>t+(b.values[g[r*C+c]]==="F"?1:0),0);h+=`<td class="cnt">${f}</td>`}
     h+=`</tr>`;
   }
