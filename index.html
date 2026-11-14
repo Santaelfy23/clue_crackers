@@ -153,6 +153,23 @@ table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
 .stars{font-family:var(--font-display);font-size:1.3rem;color:var(--manila)}
 .grownups{color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px;display:grid;gap:6px}
 @media (prefers-reduced-motion:no-preference){.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-6deg) scale(1.6);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:1}}}
+.sources{border:1.5px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;background:color-mix(in srgb,var(--btn) 5%,var(--desk))}
+.stabs{display:flex;gap:6px;flex-wrap:wrap}
+.stab{background:var(--raised);border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;display:grid;justify-items:center;min-width:64px}
+.stab b{font-family:var(--font-display);font-weight:400;font-size:1.1rem;color:var(--manila)}.stab small{color:var(--muted);font-size:.7rem}
+.stab.on{border-color:var(--btn);background:color-mix(in srgb,var(--btn) 18%,var(--raised))}
+.spanel{display:grid;gap:8px;min-width:0}.spanel p{margin:0}
+svg.qchart{width:100%;max-width:420px;display:block;margin:0 auto}
+.srchint{background:color-mix(in srgb,var(--ok) 14%,var(--desk));border-radius:6px;padding:6px 10px}
+.exam-cta{display:flex;gap:12px;align-items:center;text-align:left;background:color-mix(in srgb,var(--btn) 14%,var(--desk));border:2px solid var(--btn);border-radius:12px;padding:14px 16px;color:var(--fg)}
+.exam-cta b{display:block;font-size:1.1rem;font-family:var(--font-display);font-weight:400}.exam-cta small{color:var(--muted)}
+.paper{border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
+.sk{margin:0;padding-left:1.2em;columns:2;column-gap:18px}@media (max-width:480px){.sk{columns:1}}
+.tick{display:flex;gap:8px;align-items:center}
+.clock{font-family:var(--font-display);font-size:1.4rem;color:var(--manila);font-variant-numeric:tabular-nums}.clock.low{color:var(--stamp)}
+.opt.picked{border-color:var(--btn);background:color-mix(in srgb,var(--btn) 18%,var(--raised))}
+details.review{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+details.review[open]{border-color:var(--btn)}details.review summary{cursor:pointer}
 .tutor-cta{display:flex;gap:12px;align-items:center;text-align:left;background:color-mix(in srgb,var(--ok) 14%,var(--desk));border:2px solid var(--ok);border-radius:12px;padding:12px 14px;color:var(--fg)}
 .tutor-cta b{display:block;font-size:1.05rem}.tutor-cta small{color:var(--muted)}
 .owl{font-size:2rem;line-height:1}
@@ -1208,11 +1225,92 @@ const TENSE_CASES=[{
   fromTest:"From her Atom Learning verb tests: the bread dough, Spanish, monster and headteacher questions.",
   evidence:"The time-machine log says: “The culprit HAS WORN silver gloves SINCE Monday.”"
 }];
+/* ----- Quest-style Creative Comprehension: several sources on one theme ----- */
+function svgBar(labels,vals,unit,max){
+  max=max||Math.max(...vals);const W=300,H=170,bw=Math.floor(240/labels.length)-6;
+  let g=`<svg class="qchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart">`;
+  for(let t=0;t<=4;t++){const y=140-t*30,v=Math.round(max*t/4);g+=`<line x1="40" y1="${y}" x2="${W-10}" y2="${y}" stroke="var(--line)" stroke-width="0.6"/><text x="34" y="${y+3}" font-size="9" text-anchor="end" fill="var(--muted)">${v}</text>`}
+  labels.forEach((l,i)=>{const x=46+i*(bw+6),h=vals[i]/max*120;g+=`<rect x="${x}" y="${140-h}" width="${bw}" height="${h}" fill="var(--btn)" rx="2"/><text x="${x+bw/2}" y="${136-h}" font-size="9" text-anchor="middle" fill="var(--fg)">${vals[i]}</text><text x="${x+bw/2}" y="154" font-size="9" text-anchor="middle" fill="var(--muted)">${l}</text>`});
+  return g+`<text x="8" y="12" font-size="9" fill="var(--muted)">${unit}</text></svg>`;
+}
+const tbl=(head,rows)=>`<div class="scroll"><table class="ev"><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table></div>`;
+const PACKS=[
+{id:"garden",title:"The School Garden",lvl:1,sources:[
+ {k:"A",type:"Newsletter article",title:"Our Garden Grows!",html:`<p>Last year, Greenfield Primary turned an unused corner of the playground into a vegetable garden. Over 40 pupils joined the new Garden Club.</p><p>Head teacher Mrs Osei said: “The garden has been the best thing to happen to our school.”</p><p>The club grew potatoes, carrots, beans and pumpkins. The biggest harvest came in September, when pupils picked more vegetables than in any other month.</p><p>This year the school plans to dig a pond in the middle of the garden, which it hopes will attract frogs that eat slugs.</p>`},
+ {k:"B",type:"Bar chart",title:"Vegetables picked each month (kg)",html:svgBar(["Apr","May","Jun","Jul","Aug","Sep","Oct"],[2,5,9,14,11,18,7],"kg",20)},
+ {k:"C",type:"Map",title:"Garden plan",html:`<p class="hint" style="text-align:center">▲ North</p>${tbl(["","West","East"],[["<b>North</b>","Potatoes","Carrots"],["<b>South</b>","Beans","Pumpkins"]])}<p>The <b>gate</b> and the <b>tool shed</b> are on the east side. The planned pond will go in the centre.</p>`},
+ {k:"D",type:"Letter",title:"Letter to the newsletter",html:`<p>Dear Editor,</p><p>I have two children at Greenfield. I think the garden is a waste of money. The school spent £600 on seeds and tools, and children should spend their time on maths and English, not digging. The pond will be dangerous and will bring mosquitoes. Most parents I have spoken to agree with me.</p><p>Mr Lee</p>`},
+ {k:"E",type:"Timetable",title:"Garden Club times",html:tbl(["Day","Who","Time"],[["Monday","Years 3 and 4","3:30–4:15pm"],["Wednesday","Years 5 and 6","3:30–4:30pm"],["Friday","Everyone (watering)","12:30–1:00pm"]])+`<p>During the summer holidays (August), volunteer families take turns to water the garden and pick the vegetables.</p>`},
+ {k:"F",type:"Poster",title:"Harvest Fair!",html:`<p style="text-align:center"><b>🎃 HARVEST FAIR 🎃</b><br>Saturday 4 October, 10am–1pm, school hall</p><p>Buy fresh vegetables grown by our pupils! <b>All money raised goes towards building the new pond.</b></p><p>Pumpkin-carving competition at 11am. Don't miss it!</p>`}],
+ qs:[
+ {src:"B",q:"According to Source B, how many kilograms of vegetables were picked in July and August altogether?",opts:["25 kg","23 kg","14 kg","29 kg"],a:0,why:[null,"Check the bars again: July 14, August 11.","That's July only.","Add only July and August."],explain:"July 14 kg + August 11 kg = 25 kg."},
+ {src:"A and B",q:"Which claim in Source A is supported by Source B?",opts:["Over 40 pupils joined the Garden Club.","The biggest harvest came in September.","The garden is the best thing to happen to the school.","Frogs will eat the slugs."],a:1,why:["Source B shows kilograms, not pupils.",null,"That's Mrs Osei's opinion — a chart can't prove it.","Source B says nothing about frogs."],explain:"Source B's tallest bar is September (18 kg), so it backs up that claim."},
+ {src:"D",q:"Which sentence from Source D is an OPINION rather than a fact?",opts:["I think the garden is a waste of money.","I have two children at Greenfield.","The school spent £600 on seeds and tools.","The letter is signed by Mr Lee."],a:0,why:[null,"That could be checked — it's a fact.","An amount of money can be checked — it's a fact.","That's a fact about the letter."],explain:"“I think…” shows a personal view. Facts can be checked; opinions can't."},
+ {src:"C and E",q:"A Year 5 pupil wants to help pick the pumpkins after school. Using Sources C and E, when and where should they go?",opts:["Wednesday, south-east corner","Monday, south-east corner","Wednesday, north-west corner","Friday, south-west corner"],a:0,why:[null,"Monday is for Years 3 and 4.","The pumpkins are in the south-east, not the north-west.","Friday is lunchtime watering, and pumpkins are south-east."],explain:"Years 5 and 6 go on Wednesday (Source E), and the pumpkins are in the south-east (Source C)."},
+ {src:"F",q:"What is the main purpose of Source F?",opts:["To persuade people to come to the fair and help raise money for the pond","To explain how to grow pumpkins","To complain about the pond","To report how many vegetables were picked"],a:0,why:[null,"It doesn't give growing instructions.","It supports the pond.","That's Source B."],explain:"Posters with “Don't miss it!” and dates are trying to persuade people to come."},
+ {src:"D",q:"Mr Lee says, “Most parents I have spoken to agree with me.” Why is this weak evidence?",opts:["He may only have spoken to a few parents, who might not be typical.","Parents don't know about gardens.","He has two children at the school.","The letter is too short."],a:0,why:[null,"Unfair, and not the problem with his evidence.","That's a reason he cares, not a weakness in his evidence.","Length isn't the problem."],explain:"We don't know how many parents he asked or who they were, so it may not represent most parents."},
+ {src:"all the sources",q:"Which of these can we be SURE is true from the sources?",opts:["The pond will definitely attract frogs.","Money from the Harvest Fair will help pay for the pond.","Pupils picked the most vegetables in July.","Every pupil at the school is in the Garden Club."],a:1,why:["Source A only says the school HOPES it will.",null,"Source B shows September was highest.","Only over 40 pupils joined."],explain:"Source F says all money raised goes towards the pond. Beware words like “definitely” and “every”."},
+ {src:"B and E",q:"In August, 11 kg of vegetables were picked. Using Source E, who most likely picked them?",opts:["Years 5 and 6","Volunteer families","Mrs Osei","Mr Lee"],a:1,why:["It was the summer holidays — no club.",null,"Nothing says she picked them.","He's against the garden!"],explain:"Source E says that in August, volunteer families water and pick."}]},
+{id:"hedgehog",title:"Hedgehogs in Trouble",lvl:2,sources:[
+ {k:"A",type:"News article",title:"Where have all the hedgehogs gone?",html:`<p>Hedgehogs are disappearing from British gardens and fields. Experts estimate there are fewer than half as many as there were in 2000.</p><p>One reason is that many gardens are now surrounded by solid fences and walls, so hedgehogs cannot travel between them to find food and mates. A hedgehog can walk up to 2 km in one night.</p><p>The wildlife charity Spiky Friends is asking people to cut a small hole, 13 cm wide, at the bottom of their fence. These holes are called “hedgehog highways”.</p>`},
+ {k:"B",type:"Table",title:"Oakvale village hedgehog survey",html:tbl(["Year","Hedgehogs counted"],[["2015","64"],["2017","51"],["2019","40"],["2021","33"],["2023","29"],["2025","34"]])},
+ {k:"C",type:"Fact sheet",title:"Hedgehog facts",html:`<ul><li>Hedgehogs eat beetles, caterpillars and worms.</li><li><b>Never give hedgehogs milk</b> — it makes them ill. A shallow dish of water is best.</li><li>Hedgehogs usually hibernate from November until the end of March.</li><li>They are nocturnal: they come out at night.</li></ul>`},
+ {k:"D",type:"Advert",title:"SnugSpike Hedgehog House",html:`<p style="text-align:center"><b>SnugSpike Hedgehog House — only £49.99!</b></p><p>Every garden needs one! Hedgehogs LOVE them — 100% of our customers said so!</p><p>Buy two and save £10.</p>`},
+ {k:"E",type:"Survey",title:"Elm Road garden survey (20 gardens)",html:tbl(["Type of garden edge","Gardens","Gardens where a hedgehog was seen last month"],[["Solid fence, no gap","14","1"],["Fence with a hedgehog highway","4","3"],["Hedge","2","2"]])},
+ {k:"F",type:"Diary",title:"Maya's diary (age 10)",html:`<p><i>Tuesday 12 March</i></p><p>Saw a hedgehog in our garden at 9pm!! It was eating from the cat's bowl. Dad says we should leave out a saucer of milk for it tomorrow.</p>`}],
+ qs:[
+ {src:"B",q:"Using Source B, between which two surveys did the number of hedgehogs fall the MOST?",opts:["2015 and 2017","2017 and 2019","2021 and 2023","2023 and 2025"],a:0,why:[null,"51 to 40 is a fall of 11. Is there a bigger one?","33 to 29 is only 4.","It went UP between 2023 and 2025!"],explain:"64 → 51 is a fall of 13, the biggest drop."},
+ {src:"B",q:"Which statement about Source B is true?",opts:["The number fell every time.","The number went up between 2023 and 2025.","2021 had the lowest count.","There were exactly half as many in 2025 as in 2015."],a:1,why:["It rose from 29 to 34 at the end.",null,"2023 (29) was lower.","Half of 64 is 32, not 34."],explain:"29 in 2023 → 34 in 2025: it went up. Check every number before choosing “every time”."},
+ {src:"C and F",q:"Maya's dad wants to leave out milk (Source F). Using Source C, what would be better advice?",opts:["Leave out a shallow dish of water instead","Leave out more cat food","Leave out a bigger saucer of milk","Wake it up during the day"],a:0,why:[null,"Source C doesn't say this.","Source C says milk makes hedgehogs ill.","They're nocturnal — leave them alone in the day."],explain:"Source C: never give milk; a shallow dish of water is best."},
+ {src:"C and F",q:"Maya saw a hedgehog on 12 March. Why is that slightly surprising, according to Source C?",opts:["Hedgehogs usually hibernate until the end of March.","Hedgehogs only come out in the day.","Hedgehogs don't eat cat food.","Hedgehogs can't walk far."],a:0,why:[null,"They're nocturnal — 9pm is normal.","Source C doesn't say that.","Source A says they walk up to 2 km."],explain:"Hibernation usually lasts until the end of March, so 12 March is early to see one awake."},
+ {src:"A and E",q:"Source A says solid fences stop hedgehogs moving between gardens. Which source gives EVIDENCE that supports this?",opts:["Source D","Source E","Source F","Source B"],a:1,why:["An advert isn't evidence.",null,"One sighting doesn't compare fences.","Source B counts hedgehogs but says nothing about fences."],explain:"In Source E, hedgehogs were seen in only 1 of 14 no-gap gardens, but in 3 of 4 gardens with a highway."},
+ {src:"D",q:"Why should you be careful about believing Source D?",opts:["It is trying to sell something, and the “100%” claim isn't explained.","It is too expensive.","It doesn't have a picture.","Hedgehogs can't read adverts."],a:0,why:[null,"Price doesn't make it unreliable.","Not the problem.","A joke option!"],explain:"Adverts want you to buy. We don't know how many customers were asked, or how anyone knows what hedgehogs “love”."},
+ {src:"D",q:"Which part of Source D is a FACT that could be checked?",opts:["Every garden needs one.","Hedgehogs LOVE them.","It costs £49.99.","It's the best hedgehog house."],a:2,why:["That's an opinion (and a sales line).","That's an opinion.",null,"“Best” is an opinion."],explain:"A price can be checked. “Needs”, “love” and “best” are opinions."},
+ {src:"E",q:"In Source E, how many of the 20 gardens let hedgehogs pass through easily?",opts:["4","6","14","2"],a:1,why:["Don't forget the hedges.",null,"Those are the gardens with NO gap.","Don't forget the highways."],explain:"4 gardens with highways + 2 with hedges = 6."}]},
+{id:"cycle",title:"The Cycle Lane Debate",lvl:3,sources:[
+ {k:"A",type:"Council announcement",title:"Millbrook Council: cycle lanes (June 2025)",html:`<p>A new cycle lane opened on Bridge Street in March 2025. Since then, the number of cyclists using Bridge Street has more than doubled.</p><p>The council now plans a second cycle lane on Market Road next year. Cars will still be able to use both roads, but parking spaces on Market Road will be reduced from 40 to 25.</p>`},
+ {k:"B",type:"Table",title:"Average cyclists per day on Bridge Street",html:tbl(["Month (2025)","Cyclists per day"],[["January","120"],["February","115"],["March","— lane opens —"],["April","260"],["May","310"],["June","340"]])},
+ {k:"C",type:"Bar chart",title:"Accidents involving cyclists on Bridge Street",html:svgBar(["2023","2024","Jan–Jun 2025"],[9,11,3],"accidents",12)},
+ {k:"D",type:"Letter",title:"Letter from Mrs Patel, Patel's Bakery, Market Road",html:`<p>I have run my bakery on Market Road for 12 years. The new cycle lane will ruin my business. My customers drive here and need to park. Fewer parking spaces means fewer customers. Cyclists don't buy cakes!</p>`},
+ {k:"E",type:"Survey",title:"200 shoppers on Market Road (May 2025)",html:tbl(["How did you travel here?","Shoppers"],[["Walked","90"],["Car","60"],["Bus","30"],["Bicycle","20"]])+tbl(["Would you cycle more if there was a safe lane?","Shoppers"],[["Yes","110"],["No","70"],["Not sure","20"]])},
+ {k:"F",type:"Weather report",title:"Millbrook weather, 2025",html:`<p>January and February 2025 were the coldest and wettest months of the year so far. April to June were mostly dry and warm.</p>`}],
+ qs:[
+ {src:"A, B and F",q:"The council says cyclist numbers “more than doubled” after the lane opened. Which source suggests this might NOT be only because of the new lane?",opts:["Source C","Source E","Source F","Source D"],a:2,why:["Accidents don't explain the number of cyclists.","That's about Market Road shoppers.",null,"Mrs Patel is talking about her bakery."],explain:"Source F shows the weather got warmer and drier at the same time, which could also explain more cyclists. That's another explanation, so it weakens the claim."},
+ {src:"B",q:"Using Source B, how many MORE cyclists per day were there in June than in January?",opts:["220","240","340","200"],a:0,why:[null,"Check the subtraction: 340 − 120.","That's June's total, not the difference.","340 − 120 = ?"],explain:"340 − 120 = 220."},
+ {src:"C",q:"Source C shows 3 accidents in 2025 and 11 in 2024. Why can't we be SURE the lane has made Bridge Street safer?",opts:["The 2025 figure only covers six months, not a whole year.","3 is a small number.","Some accidents involve cars.","The chart has no title."],a:0,why:[null,"Small numbers are fine — the problem is the time period.","Not the main problem.","It has a title."],explain:"January to June is only half a year, so 3 can't be fairly compared with a whole year's 11. Always check what time each number covers."},
+ {src:"D and E",q:"Mrs Patel says her customers drive and need to park. Which information most WEAKENS her argument about Market Road shoppers?",opts:["She has run the bakery for 12 years.","Only 60 of the 200 shoppers surveyed came by car; most walked.","Some shoppers came by bus.","The survey was in May."],a:1,why:["That doesn't weaken her argument.",null,"True, but it's not the strongest point.","Not relevant."],explain:"Source E shows most shoppers walked (90) and only 60 out of 200 drove, so losing some parking may affect fewer customers than she thinks."},
+ {src:"D",q:"Which sentence from Source D is a FACT rather than an opinion?",opts:["The new cycle lane will ruin my business.","I have run my bakery on Market Road for 12 years.","Fewer parking spaces means fewer customers.","Cyclists don't buy cakes!"],a:1,why:["A prediction and an opinion.",null,"A claim she believes, not a proven fact.","A generalisation — almost certainly not true of all cyclists."],explain:"How long she has run the bakery can be checked. The others are predictions or opinions."},
+ {src:"A",q:"According to Source A, how many parking spaces will Market Road LOSE?",opts:["15","25","40","65"],a:0,why:[null,"25 is how many will be left.","40 is how many there are now.","Don't add them — subtract."],explain:"40 − 25 = 15 spaces lost."},
+ {src:"E",q:"Which conclusion is best supported by Source E?",opts:["Most shoppers already cycle to Market Road.","More than half of the shoppers surveyed said they would cycle more if there was a safe lane.","All shoppers want the new lane.","Car drivers will stop shopping on Market Road."],a:1,why:["Only 20 of 200 cycled.",null,"70 said no — “all” is too strong.","The survey doesn't say this."],explain:"110 out of 200 is more than half (100). The careful wording is right; “all” and “will stop” go too far."},
+ {src:"A and D",q:"How are the viewpoints in Source A and Source D different?",opts:["Source A supports more cycle lanes, but Source D is against the new lane because of parking.","Both are against cycle lanes.","Source D supports cycle lanes, but Source A doesn't.","They agree about parking."],a:0,why:[null,"The council is planning more lanes.","The other way round.","Mrs Patel is worried about parking; the council is reducing it."],explain:"The council (A) is for the lanes. Mrs Patel (D) is against, because of parking and customers."}]}
+];
+function sourcesHTML(pack,sel){
+  const s=pack.sources.find(x=>x.k===sel)||pack.sources[0];
+  return `<div class="sources"><p class="label">📂 The sources: ${esc(pack.title)}</p>
+    <div class="stabs" role="tablist">${pack.sources.map(x=>`<button class="stab ${x.k===s.k?"on":""}" data-src="${x.k}" role="tab" aria-selected="${x.k===s.k}"><b>${x.k}</b><small>${esc(x.type)}</small></button>`).join("")}</div>
+    <div class="spanel"><p class="label">Source ${s.k} · ${esc(s.type)}</p><h3>${esc(s.title)}</h3>${s.html}</div></div>`;
+}
+function questRound(level){
+  const pack=PACKS.find(p=>p.lvl===level)||PACKS[0];
+  return pack.qs.map(q=>({pack:pack.id,q:`${level===1?`<p class="srchint">🔎 Look at: <b>Source ${esc(q.src).replace(/ and /g," and Source ").replace("Source all the sources","all the sources")}</b></p>`:""}<p class="ask">${esc(q.q)}</p>`,
+    opts:q.opts,a:q.a,why:q.why,explain:q.explain,src:q.src,
+    clues:["Read the QUESTION first, then go to the source it needs. Don't try to read everything first.",`Look at: ${q.src==="all the sources"?"all the sources":"Source "+q.src.replace(/, /g,", Source ").replace(/ and /g," and Source ")}.`,
+      /opinion|fact/i.test(q.q)?"Fact = could be checked. Opinion = what someone thinks or feels (I think, best, should, love, ruin).":/purpose/i.test(q.q)?"Ask: who made this, and what do they want the reader to do?":/careful|weak|reliable|why can't/i.test(q.q)?"Ask: who wrote it and why? How many people were asked? Does each number cover the same time?":/sure|conclusion|supported|evidence/i.test(q.q)?"Only choose what the sources really show. Words like definitely, all, every and will usually go too far.":"Find the exact numbers or words in the source, then work it out on paper."]}));
+}
+
+const QUEST_CASES=[{
+  id:"quest", tab:"CASE 13", title:"The Evidence Room",
+  blurb:"Quest-style Creative Comprehension: articles, charts, maps, letters and adverts on one theme.",
+  rule:"Question first. Then the source. Fact or opinion?",
+  steps:["Read the QUESTION first. It usually tells you which source(s) to look at.","Go to that source and find the exact words or numbers. Write numbers on paper.","FACT = could be checked (a price, a date, a number). OPINION = what someone thinks (I think, best, should, love, ruin).","Ask who made each source and why: an advert wants to sell; a letter gives one person's view.","“Supported” or “can we be sure?”: choose only what the sources really show. Beware definitely, all, every, will.","Check each number covers the same time (a whole year vs six months)."],
+  fromTest:"Matches the Quest Creative Comprehension section (6–7 sources, about 20 minutes).",
+  evidence:"The pumpkin went missing at 4:15pm — exactly when one of the Garden Club sessions ended (check the timetable in the garden sources!)."
+}];
 /* ----- assemble cases ----- */
 CASES[2].puzzles.push(CASES[2].extra.shift());          // 6 originals in every first-mystery case
 CASES[0].gen="genSeating";
 CASES[1].exam=LOGIC_EXAM; CASES[2].exam=ARGS_EXAM;
-CASES.push(...NEW_CASES,...MATHS_CASES,...TENSE_CASES);
+CASES.push(...NEW_CASES,...MATHS_CASES,...TENSE_CASES,...QUEST_CASES);
 const GENS={genSeating,genRanking,genLiars,genGrid,genVault,genSafe,genCounting,genTense};
 const LEVELS=[null,{name:"Trainee",tag:"Level 1"},{name:"Detective",tag:"Level 2"},{name:"Exam level",tag:"Level 3"}];
 const UNLOCK=10;
@@ -1259,7 +1357,14 @@ const MYSTERIES=[
    suspects:[
      {name:"Dr Chronos",role:"the inventor",face:"🔭",gloves:false,alibi:"Dr Chronos wore silver gloves last week but lost them on Friday. “Has worn … since” means STILL wearing them, so it can't be Dr Chronos."},
      {name:"Captain Clock",role:"the lab assistant",face:"⏰",gloves:true}],
-   thief:1,win:"“Has worn … since Monday” means the culprit is STILL wearing silver gloves — and only Captain Clock still does. Present perfect + since = still going on! 🕰️"}
+   thief:1,win:"“Has worn … since Monday” means the culprit is STILL wearing silver gloves — and only Captain Clock still does. Present perfect + since = still going on! 🕰️"},
+  {id:"pumpkin",key:"caught6",title:"The Prize Pumpkin Puzzle",cases:["quest"],
+   intro:"On the morning of the Harvest Fair, the prize pumpkin vanished from the school garden! Two club helpers were there that afternoon. Crack the Evidence Room to find out who it was.",
+   traits:[["monday","Helps at Monday club","Helps at Wednesday club"]],
+   suspects:[
+     {name:"Coach Kettle",role:"the PE teacher",face:"🏉",monday:true},
+     {name:"Ms Marble",role:"the art teacher",face:"🎨",monday:false,alibi:"Ms Marble helps at Wednesday club, which ends at 4:30pm, not 4:15. Check Source E in the garden pack!"}],
+   thief:0,win:"Monday's Garden Club ends at 4:15pm (Source E) and Coach Kettle helps on Mondays. Cross-referencing sources cracked it! 🎃"}
 ];
 const caseById=id=>CASES.find(c=>c.id===id);
 const mysteryOf=c=>MYSTERIES.find(m=>m.cases.includes(c.id));
@@ -1293,6 +1398,7 @@ let cloudRef=null, cloudTimer=null;
 function mergeProg(a,b){const o=Object.assign({},a);
   for(const k in b){const y=b[k];
     if(typeof y==="boolean"){o[k]=!!(o[k]||y);continue}
+    if(k==="exam"){const x=o.exam||{},e=Object.assign({},x,y);for(const n of ["best10","best20"]) if(x[n]!=null||y[n]!=null) e[n]=Math.max(x[n]||0,y[n]||0);e.history=(x.history||[]).concat(y.history||[]).slice(-30);o.exam=e;continue}
     if(!y||typeof y!=="object")continue;
     const x=o[k];if(!x){o[k]=y;continue}
     const lx=x.lv||{1:x.points||0}, ly=y.lv||{1:y.points||0}, lv={};
@@ -1331,6 +1437,7 @@ function confetti(){
 
 /* ----- rounds ----- */
 function buildRound(c,level,originals){
+  if(c.id==="quest") return questRound(level);
   if(originals&&c.puzzles) return c.puzzles;
   if(c.gen){const r=[];let guard=0;while(r.length<6&&guard++<60){const g=GENS[c.gen](level);if(g)r.push(g)}return r}
   const tagged=[].concat((c.puzzles||[]).map(p=>({...p,lvl:1})),(c.extra||[]).map(p=>({...p,lvl:2})),(c.exam||[]).map(p=>({...p,lvl:3})),c.bank||[]);
@@ -1343,7 +1450,7 @@ const L="ABCDE";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(stay){
   const y=window.scrollY; setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
-  ({home,brief,puzzle,end:endView,accuse,tutor})[state.view]();
+  ({home,brief,puzzle,end:endView,accuse,tutor,examSetup:examSetupView,exam:examView,examEnd:examEndView})[state.view]();
 }
 function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
 
@@ -1374,6 +1481,7 @@ function home(){
     <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
   ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · ${LEVELS[run.level||1].tag} · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
     <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
+  <button class="exam-cta" id="examgo"><span class="owl" aria-hidden="true">📝</span><span><b>Exam mode</b><small>Pencil and paper only, against the clock${progress.exam&&progress.exam.best10!=null?` · Best: ${progress.exam.best10}/10`:""}${progress.exam&&progress.exam.best20!=null?` · ${progress.exam.best20}/20`:""}</small></span></button>
   ${MYSTERIES.map(mystery).join("")}
   <div class="grownups"><p class="label">💾 Save code</p>
   <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
@@ -1381,6 +1489,7 @@ function home(){
     <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
   app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{const ci=+b.dataset.i;state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()});
   app.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>{state={view:"accuse",mi:+b.dataset.acc,wrong:[]};render()});
+  document.getElementById("examgo").onclick=()=>{state={view:"home"};examSetup()};
   document.getElementById("mode").onclick=()=>{mode=mode==="light"?"dark":"light";ls.set(KEY+"-mode",mode);applyMode();render(true)};
   document.getElementById("snd").onclick=()=>{soundOn=!soundOn;ls.set(KEY+"-sound",soundOn?"1":"0");chime(true);render(true)};
   const nf=document.getElementById("nameform"); if(nf) nf.onsubmit=e=>{e.preventDefault();const v=document.getElementById("pname").value.trim();if(v){playerName=v;ls.set(KEY+"-name",v);save();render(true)}};
@@ -1445,6 +1554,7 @@ function puzzle(){
   <section class="card">
     <p class="label">${c.tab} · ${LEVELS[state.level].tag} · Puzzle ${state.pi+1} of ${R.length}</p>
     <div class="rule" style="font-size:1rem">${esc(c.rule)}</div>
+    ${p.pack?sourcesHTML(PACKS.find(x=>x.id===p.pack),state.srcTab||"A"):""}
     <div class="q">${p.q}</div>
     ${npIndex(p)>=0&&!state.solved?`<div class="alert" role="note"><span class="t">🚨 Trap alert: “not possible to tell”</span><p>Found one arrangement? Don't stop yet!</p><ol><li><b>List</b> every place the most restricted person (or pair) could go.</li><li><b>Place</b> everyone else and check every clue.</li><li><b>Tick ✅ or cross ❌</b> each arrangement.</li></ol><p>One ✅ = that's your answer. Two ✅ that give different answers = <b>not possible to tell</b>.</p></div>`:""}
     ${p.board?boardHTML(p.board,p):""}
@@ -1460,6 +1570,7 @@ function puzzle(){
   const cl=document.getElementById("clue"); if(cl) cl.onclick=()=>{state.shown++;render(true)};
   const nx=document.getElementById("next"); if(nx) nx.onclick=next;
   const ht=document.getElementById("howto"); if(ht) ht.onclick=()=>startTutor(state.ci);
+  app.querySelectorAll("[data-src]").forEach(b=>b.onclick=()=>{state.srcTab=b.dataset.src;render(true)});
   if(p.board) wireBoard(p.board);
 }
 function choose(i){
@@ -1523,6 +1634,127 @@ function accuse(){
     if(i===m.thief){state.caught=true;state.msg="";progress[m.key]=true;save();confetti();setTimeout(confetti,400);chime(true)}
     else{state.wrong.push(i);state.msg=m.suspects[i].alibi;chime(false)}
     render(true)});
+}
+
+/* ----- Exam mode: pencil and paper, no help, against the clock ----- */
+const SKETCH={seats:"Draw _ _ _ _ seats (or a circle with the first person at the bottom). Try a second arrangement if “not possible to tell” is an option.",
+  logic:"Write the rule as an arrow (A → B). Arrows only go forwards; backwards trick = flip it AND add “not”.",
+  args:"Underline the claim. Ask: does this option support THIS claim? Beware the “nice fact” trap.",
+  rank:"Draw a ladder: oldest / tallest / 1st at the top. Flip-words (younger, shorter, lower) go BELOW.",
+  liars:"Draw a T/F table: one row for “if A did it”, “if B did it”… Count the lies in each row.",
+  grid:"Draw a small ✓/✗ grid. Each ✓ gives free ✗s across its row and column.",
+  court:"Find the reason and the claim. Assumption = the hidden link. Beware strong words (all, definitely, only).",
+  flaws:"Ask: does the reason REALLY prove the claim? Too few examples? Two choices only? Something else causing both?",
+  vault:"Turn everything into the smallest item. Take the same things off both sides.",
+  safe:"Start the smallest at 1, then 2, then 3… Shares: numbers in a row, then adjust the last one.",
+  count:"Write it all out: dates in a list, or “everyone has 1, then count the extras”.",
+  tense:"Three questions: When? Finished or still going? What order? Cross out options that add details."};
+const EXAM_CASES=["seats","logic","args","rank","liars","grid","court","flaws","tense","vault","safe","count"];
+function examPick(id,level,used){
+  const c=caseById(id);
+  for(let t=0;t<20;t++){
+    let p;
+    if(c.gen) p=GENS[c.gen](level);
+    else{const tagged=[].concat((c.puzzles||[]).map(x=>({...x,lvl:1})),(c.extra||[]).map(x=>({...x,lvl:2})),(c.exam||[]).map(x=>({...x,lvl:3})),c.bank||[]);
+      const pool=tagged.filter(x=>x.lvl>=Math.min(level,2)); p=pool[rnd(pool.length)];}
+    if(p&&!used.has(p.q)){used.add(p.q);return {...p,cid:id}}
+  }
+  return null;
+}
+function examSetup(){state={view:"examSetup",exN:state.exN||10,exL:state.exL||2,exMaths:state.exMaths!==false};render()}
+function examSetupView(){
+  const ex=progress.exam||{};
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">📝 Exam mode</p><h2>Just you, a pencil and paper</h2>
+    <p>No scratch board, no clues, no Owl — like the real exam. Questions come from all the cases, mixed up. You get about <b>1 minute per question</b>.</p>
+    <div class="paper"><p class="label">✏️ Before you start</p><p>Get a pencil and some scrap paper. For every question, draw your sketch on paper first:</p>
+      <ul class="sk"><li><b>Seats:</b> _ _ _ _ or a circle</li><li><b>Ages, heights, races:</b> a ladder</li><li><b>Liars:</b> a T/F table</li><li><b>Matching:</b> a ✓/✗ grid</li><li><b>Logic:</b> arrows A → B</li><li><b>Arguments:</b> underline the claim</li><li><b>Tenses:</b> When? Finished? Order?</li></ul></div>
+    <p class="label">How many questions?</p>
+    <div class="levels">${[10,20].map(n=>`<button class="lvbtn ${state.exN===n?"on":""}" data-n="${n}"><b>${n} questions</b><span>${n} minutes</span><small>${ex["best"+n]!=null?`Best: ${ex["best"+n]}/${n}`:"Not tried yet"}</small></button>`).join("")}</div>
+    <p class="label">How hard?</p>
+    <div class="levels">${[2,3].map(l=>`<button class="lvbtn ${state.exL===l?"on":""}" data-l="${l}"><b>${LEVELS[l].tag}</b><span>${LEVELS[l].name}</span><small>${l===3?"Real exam difficulty":"A good place to start"}</small></button>`).join("")}</div>
+    <label class="tick"><input type="checkbox" id="exm" ${state.exMaths?"checked":""}> Include maths questions</label>
+    <div class="row"><button class="btn" id="exgo">⏱️ Start the exam</button></div>
+  </section>`;
+  back();
+  app.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{state.exN=+b.dataset.n;render(true)});
+  app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{state.exL=+b.dataset.l;render(true)});
+  document.getElementById("exm").onchange=e=>{state.exMaths=e.target.checked};
+  document.getElementById("exgo").onclick=startExam;
+}
+let examTimer=null;
+function startExam(){
+  const n=state.exN, level=state.exL, ids=EXAM_CASES.filter(id=>state.exMaths||!["vault","safe","count"].includes(id));
+  const used=new Set(), qs=[]; let order=shuffle(ids);
+  while(qs.length<n){if(!order.length)order=shuffle(ids);const p=examPick(order.shift(),level,used);if(p)qs.push(p)}
+  state={view:"exam",exN:n,exL:level,exMaths:state.exMaths,qs,ans:Array(n).fill(null),i:0,end:Date.now()+n*60000,start:Date.now(),skipped:[]};
+  clearInterval(examTimer);examTimer=setInterval(()=>{const el=document.getElementById("clock");if(state.view!=="exam"){clearInterval(examTimer);return}
+    const left=Math.max(0,state.end-Date.now());if(el){el.textContent=fmtT(left);el.classList.toggle("low",left<60000)}if(!left)finishExam(true)},500);
+  render();
+}
+const fmtT=ms=>{const s=Math.ceil(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+function examView(){
+  const q=state.qs[state.i], n=state.qs.length, answered=state.ans.filter(a=>a!==null).length;
+  app.innerHTML=`
+  <div class="row" style="justify-content:space-between"><span class="label">📝 Exam mode · Question ${state.i+1} of ${n}</span><span class="clock" id="clock">${fmtT(state.end-Date.now())}</span></div>
+  <div class="dots">${state.qs.map((_,k)=>`<span class="dot ${state.ans[k]!==null?"done":""} ${k===state.i?"now":""}"></span>`).join("")}</div>
+  <section class="card">
+    <p class="hint">✏️ Draw it on paper first.</p>
+    <div class="q">${q.q}</div>
+    <div class="opts">${q.opts.map((o,k)=>`<button class="opt ${state.ans[state.i]===k?"picked":""}" data-k="${k}"><b>${L[k]}</b><span>${esc(o)}</span></button>`).join("")}</div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost" id="prev" ${state.i===0?"disabled":""}>← Back</button>
+      <button class="btn ghost" id="skip">${state.ans[state.i]===null?"Skip for now":"Next"} →</button></div>
+    <p class="hint">${answered} of ${n} answered. Stuck for more than a minute? Skip it and come back at the end.</p>
+    <div class="row"><button class="btn ${answered===n?"":"ghost"}" id="fin">Finish the exam</button></div>
+  </section>`;
+  const go=k=>{state.i=k;render()};
+  const nextOpen=()=>{for(let k=1;k<=n;k++){const j=(state.i+k)%n;if(state.ans[j]===null)return j}return Math.min(state.i+1,n-1)};
+  app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{state.ans[state.i]=+b.dataset.k;if(state.ans.every(a=>a!==null)&&state.i===n-1){render(true);return}go(nextOpen())});
+  document.getElementById("prev").onclick=()=>go(state.i-1);
+  document.getElementById("skip").onclick=()=>go(state.ans.some(a=>a===null)?nextOpen():Math.min(state.i+1,n-1));
+  const fin=document.getElementById("fin"); fin.onclick=()=>{
+    const left=state.ans.filter(a=>a===null).length;
+    if(left&&!state.confirm){state.confirm=true;fin.textContent=`${left} unanswered — tap again to finish`;return}
+    finishExam(false)};
+}
+function finishExam(timeUp){
+  clearInterval(examTimer);
+  const n=state.qs.length, right=state.qs.filter((q,k)=>state.ans[k]===q.a).length;
+  const ex=progress.exam||{}; const key="best"+n; const prevBest=ex[key];
+  ex[key]=Math.max(prevBest||0,right);
+  ex.history=(ex.history||[]).concat([{n,level:state.exL,right,secs:Math.round((Date.now()-state.start)/1000),at:new Date().toISOString().slice(0,10)}]).slice(-30);
+  progress.exam=ex; save();
+  if(right>=Math.ceil(n*0.8)) confetti();
+  Object.assign(state,{view:"examEnd",timeUp,right,newBest:prevBest==null||right>prevBest});
+  render();
+}
+function examEndView(){
+  const n=state.qs.length, secs=Math.round((Date.now()-state.start)/1000);
+  const byType={};state.qs.forEach((q,k)=>{const t=caseById(q.cid).title;byType[t]=byType[t]||[0,0];byType[t][1]++;if(state.ans[k]===q.a)byType[t][0]++});
+  const wrong=state.qs.map((q,k)=>({q,k})).filter(x=>state.ans[x.k]!==x.q.a);
+  const hist=(progress.exam.history||[]).slice(-6);
+  app.innerHTML=`
+  <section class="card end"><p class="label">📝 Exam mode · ${LEVELS[state.exL].tag}</p>
+    <h2>${state.timeUp?"Time's up!":"Exam finished"}</h2>
+    <p class="stars">${state.right} / ${n}</p>
+    <p>${state.newBest?"🏅 New best score! ":""}${state.right===n?"Perfect — exam ready!":state.right>=n*0.8?"Excellent work.":state.right>=n*0.6?"Good effort — check the ones below.":"Keep going — look at the methods below."}</p>
+    ${hist.length>1?`<p class="hint">Recent scores: ${hist.map(h=>`${h.right}/${h.n}`).join(" · ")}</p>`:""}
+  </section>
+  <section class="card"><p class="label">By question type</p>
+    <div class="scroll"><table class="ev"><tr><th>Type</th><th>Right</th></tr>${Object.entries(byType).map(([t,[r,c]])=>`<tr><td style="text-align:left">${esc(t)}</td><td>${r}/${c}${r===c?" ✅":""}</td></tr>`).join("")}</table></div>
+  </section>
+  ${wrong.length?`<section class="card"><p class="label">Let's look at the ones you missed</p>
+    ${wrong.map(({q,k})=>`<details class="review"><summary><b>Question ${k+1}</b> · ${esc(caseById(q.cid).title)} · ${state.ans[k]===null?"not answered":"you chose "+L[state.ans[k]]}</summary>
+      <div class="q">${q.q}</div>
+      <p><b>Answer: ${L[q.a]}</b> — ${esc(q.opts[q.a])}</p>
+      <p>${esc(q.explain)}</p>
+      <div class="coach"><span class="owl" aria-hidden="true">🦉</span><p><b>Check your paper:</b> ${esc(SKETCH[q.cid]||"")}</p></div>
+    </details>`).join("")}</section>`:""}
+  <div class="row" style="justify-content:center"><button class="btn" id="again">⏱️ Try another exam</button><button class="btn ghost" id="home">Back to the case files</button></div>`;
+  document.getElementById("again").onclick=examSetup;
+  document.getElementById("home").onclick=()=>{state={view:"home"};render()};
 }
 
 /* ----- step-by-step guided walkthroughs ("Show me how") ----- */
@@ -1629,6 +1861,14 @@ count:{title:"How to crack counting puzzles",steps:[
  {say:"Imagine those 23 families each have 1 car. That's 23 cars. How many cars are left over?",ask:["6","3","29"],a:0,no:[null,"29 − 23 = ?","Take away the 23."],ok:"6 extra cars — each belongs to a two-car family."},
  {say:"So how many families have just one car?",ask:["17","6","23"],a:0,no:[null,"6 have TWO cars.","Some of the 23 have two cars."],ok:"23 − 6 = 17. Always write it out — don't stop after the first step!"},
  {say:"Shop offers: “Buy 2, get a 3rd half price”, boxes £10, you need 4. Cost?",ask:["£35","£40","£30"],a:0,no:[null,"The 3rd box is half price.","Only ONE box is cheaper."],ok:"£10 + £10 + £5 + £10 = £35. Work out exactly what's needed at each shop."}
+]},
+quest:{title:"How to crack Quest source questions",steps:[
+ {say:"In Quest you get several sources on one theme — an article, a chart, a letter, an advert… Don't read them all first! Read the QUESTION first.",puzzle:"<b>Source D (Advert):</b> “SnugSpike Hedgehog House — only £49.99! Every garden needs one. Hedgehogs LOVE them!”<br><br><b>Question:</b> Which part of Source D is a FACT that could be checked?"},
+ {say:"Fact or opinion? A FACT could be checked. An OPINION is what someone thinks or feels. “It costs £49.99” is…",ask:["A fact — you could check the price","An opinion"],a:0,no:[null,"You could look at the price tag — so it can be checked."],ok:"Fact!"},
+ {say:"“Every garden needs one” is…",ask:["An opinion","A fact"],a:0,no:[null,"Can you check whether a garden “needs” one? Not really — it's what the advert wants you to think."],ok:"Opinion. Watch for words like need, best, love, should, ruin, I think."},
+ {say:"Who made Source D, and what do they want?",ask:["A company that wants to sell hedgehog houses","A scientist reporting facts"],a:0,no:[null,"It's an advert with a price!"],ok:"So we should be careful believing it. Always ask: who made it, and why?"},
+ {say:"Now a cross-reference. Source A says solid fences stop hedgehogs moving. Source E shows hedgehogs were seen in 1 of 14 gardens with solid fences, but 3 of 4 gardens with a gap. Does Source E SUPPORT Source A?",ask:["Yes — fewer hedgehogs were seen where fences had no gap","No"],a:0,no:[null,"Compare: 1 out of 14 vs 3 out of 4."],ok:"Supporting evidence = facts that make the claim more likely."},
+ {say:"Last trick: “Which can we be SURE is true?” A source says the school “hopes the pond will attract frogs”. Can we be sure frogs will come?",ask:["No — “hopes” isn't “will”","Yes"],a:0,no:[null,"Hoping doesn't make it certain."],ok:"Only choose what the sources really show. Words like definitely, all, every and will usually go too far. Question first, then the source — you've got it!"}
 ]},
 tense:{title:"How to crack tense questions",steps:[
  {say:"Read it.",puzzle:"“She has studied Spanish since she was eight.”<br><b>Which other sentence must be true?</b>"},
