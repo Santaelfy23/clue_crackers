@@ -161,6 +161,23 @@ table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
 .spanel{display:grid;gap:8px;min-width:0}.spanel p{margin:0}
 svg.qchart{width:100%;max-width:420px;display:block;margin:0 auto}
 .srchint{background:color-mix(in srgb,var(--ok) 14%,var(--desk));border-radius:6px;padding:6px 10px}
+.mission h3{color:var(--fg)}
+.mlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mi{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.mi .mt{flex:1;min-width:0}.mi small{color:var(--muted)}
+.mi.done{opacity:.65}.mi.done .mt{text-decoration:line-through}
+.mi.cur{border-color:var(--btn);background:color-mix(in srgb,var(--btn) 10%,var(--desk))}
+.exam-cta.trophy-cta{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--desk))}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.statrow div{background:var(--raised);border-radius:10px;padding:10px;display:grid;gap:2px;text-align:center}
+.statrow b{font-family:var(--font-display);font-weight:400;font-size:1.2rem;color:var(--manila)}.statrow span{color:var(--muted);font-size:.8rem}
+.trophies{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.trophy{border:1.5px dashed var(--line);border-radius:10px;padding:10px;display:grid;gap:3px;justify-items:center;text-align:center;opacity:.55}
+.trophy.got{border-style:solid;border-color:var(--btn);opacity:1;background:color-mix(in srgb,var(--btn) 10%,var(--desk))}
+.trophy .ti{font-size:1.6rem}.trophy small{color:var(--muted);font-size:.75rem}
+.fbk{border-left:3px solid var(--line);padding:6px 12px;border-radius:4px;background:var(--raised)}
+.fbk.good2{border-color:var(--ok)}.fbk.warn{border-color:var(--btn)}
+table.rc td{font-size:.88rem}.st-st{color:var(--ok)}.st-kp{color:var(--manila)}.st-ns{color:var(--muted)}
 .exam-cta{display:flex;gap:12px;align-items:center;text-align:left;background:color-mix(in srgb,var(--btn) 14%,var(--desk));border:2px solid var(--btn);border-radius:12px;padding:14px 16px;color:var(--fg)}
 .exam-cta b{display:block;font-size:1.1rem;font-family:var(--font-display);font-weight:400}.exam-cta small{color:var(--muted)}
 .paper{border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
@@ -1398,6 +1415,7 @@ let cloudRef=null, cloudTimer=null;
 function mergeProg(a,b){const o=Object.assign({},a);
   for(const k in b){const y=b[k];
     if(typeof y==="boolean"){o[k]=!!(o[k]||y);continue}
+    if(k==="tut"){o.tut=Object.assign({},o.tut||{},y);continue}
     if(k==="exam"){const x=o.exam||{},e=Object.assign({},x,y);for(const n of ["best10","best20"]) if(x[n]!=null||y[n]!=null) e[n]=Math.max(x[n]||0,y[n]||0);e.history=(x.history||[]).concat(y.history||[]).slice(-30);o.exam=e;continue}
     if(!y||typeof y!=="object")continue;
     const x=o[k];if(!x){o[k]=y;continue}
@@ -1450,7 +1468,7 @@ const L="ABCDE";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(stay){
   const y=window.scrollY; setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
-  ({home,brief,puzzle,end:endView,accuse,tutor,examSetup:examSetupView,exam:examView,examEnd:examEndView})[state.view]();
+  ({home,brief,puzzle,end:endView,accuse,tutor,examSetup:examSetupView,exam:examView,examEnd:examEndView,trophies:achievementsView})[state.view]();
 }
 function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
 
@@ -1481,6 +1499,8 @@ function home(){
     <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
   ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · ${LEVELS[run.level||1].tag} · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
     <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
+  ${missionHTML()}
+  <button class="exam-cta trophy-cta" id="trophygo"><span class="owl" aria-hidden="true">🏆</span><span><b>My achievements &amp; feedback</b><small>${trophies().filter(t=>t[3]).length} trophies · report card · Inspector Owl's feedback</small></span></button>
   <button class="exam-cta" id="examgo"><span class="owl" aria-hidden="true">📝</span><span><b>Exam mode</b><small>Pencil and paper only, against the clock${progress.exam&&progress.exam.best10!=null?` · Best: ${progress.exam.best10}/10`:""}${progress.exam&&progress.exam.best20!=null?` · ${progress.exam.best20}/20`:""}</small></span></button>
   ${MYSTERIES.map(mystery).join("")}
   <div class="grownups"><p class="label">💾 Save code</p>
@@ -1489,6 +1509,8 @@ function home(){
     <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
   app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{const ci=+b.dataset.i;state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()});
   app.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>{state={view:"accuse",mi:+b.dataset.acc,wrong:[]};render()});
+  wireMissions();
+  document.getElementById("trophygo").onclick=()=>{state={view:"trophies"};render()};
   document.getElementById("examgo").onclick=()=>{state={view:"home"};examSetup()};
   document.getElementById("mode").onclick=()=>{mode=mode==="light"?"dark":"light";ls.set(KEY+"-mode",mode);applyMode();render(true)};
   document.getElementById("snd").onclick=()=>{soundOn=!soundOn;ls.set(KEY+"-sound",soundOn?"1":"0");chime(true);render(true)};
@@ -1606,10 +1628,11 @@ function endView(){
     ${state.newLevel?`<p class="unlocked">🔓 ${LEVELS[state.newLevel].tag} (${LEVELS[state.newLevel].name}) unlocked!</p>`:(state.level<3&&state.pts<UNLOCK?`<p class="hint">Score ${UNLOCK}+ 🔍 in one round to unlock ${LEVELS[state.level+1].tag}.</p>`:"")}
     <div class="ev-card open unlock"><span class="label">${state.firstSolve?"New evidence unlocked!":"Evidence"} · ${esc(m.title)} · Evidence ${ei+1}</span><p>${esc(c.evidence)}</p></div>
     ${solvedAll(m)&&!progress[m.key]?`<button class="btn" id="acc2">🕵️ You have all the evidence — name the thief!</button>`:""}
-    <div class="row" style="justify-content:center"><button class="btn" id="home">Back to the case files</button><button class="btn ghost" id="again">🎲 Play again</button></div>
+    <div class="row" style="justify-content:center"><button class="btn" id="home">Back to the case files</button><button class="btn ghost" id="again">🎲 Play again</button><button class="btn ghost" id="tro">🏆 My achievements</button></div>
   </section>`;
   document.getElementById("home").onclick=()=>{state={view:"home"};render()};
   document.getElementById("again").onclick=()=>{state={view:"brief",ci:state.ci,level:unlockedLevel(c)};render()};
+  document.getElementById("tro").onclick=()=>{state={view:"trophies"};render()};
   const a2=document.getElementById("acc2"); if(a2) a2.onclick=()=>{state={view:"accuse",mi:MYSTERIES.indexOf(m),wrong:[]};render()};
 }
 
@@ -1755,6 +1778,109 @@ function examEndView(){
   <div class="row" style="justify-content:center"><button class="btn" id="again">⏱️ Try another exam</button><button class="btn ghost" id="home">Back to the case files</button></div>`;
   document.getElementById("again").onclick=examSetup;
   document.getElementById("home").onclick=()=>{state={view:"home"};render()};
+}
+
+/* ----- Mission board (ordered) and Achievements page ----- */
+const ci_=id=>CASES.findIndex(c=>c.id===id);
+const tutDone=id=>!!(progress.tut&&progress.tut[id]);
+const exHist=()=>(progress.exam&&progress.exam.history)||[];
+const MISSIONS=[
+ {wk:1,t:"Evidence Room: 🦉 Show me how (with a grown-up)",done:()=>tutDone("quest"),go:()=>startTutor(ci_("quest"))},
+ {wk:1,t:"Evidence Room: play Level 1",done:()=>lvPts(caseById("quest"),1)>0,go:()=>startCase(ci_("quest"),1,false)},
+ {wk:1,t:"Evidence Room: score 12+ 🔍 at Level 1",done:()=>lvPts(caseById("quest"),1)>=12,go:()=>startCase(ci_("quest"),1,false)},
+ {wk:1,t:"The Courtroom: 🦉 Show me how, then play Level 1",done:()=>tutDone("court"),go:()=>startTutor(ci_("court"))},
+ {wk:1,t:"The Flaw Finders: 🦉 Show me how, then play Level 1",done:()=>tutDone("flaws"),go:()=>startTutor(ci_("flaws"))},
+ {wk:1,t:"📝 Exam mode: 10 questions, Level 2, pencil and paper",done:()=>exHist().some(h=>h.n===10),go:()=>{state={view:"examSetup",exN:10,exL:2,exMaths:true};render()}},
+ {wk:1,t:"Evidence Room: play Level 2 (hedgehogs)",done:()=>lvPts(caseById("quest"),2)>0,go:()=>startCase(ci_("quest"),2,false),need:()=>unlockedLevel(caseById("quest"))>=2},
+ {wk:2,t:"Courtroom AND Flaw Finders: 12+ 🔍 at Level 1 in each",done:()=>lvPts(caseById("court"),1)>=12&&lvPts(caseById("flaws"),1)>=12,go:()=>startCase(ci_(lvPts(caseById("court"),1)>=12?"flaws":"court"),1,false)},
+ {wk:2,t:"📝 Exam mode: 10 questions again — beat your best",done:()=>exHist().filter(h=>h.n===10).length>=2,go:()=>{state={view:"examSetup",exN:10,exL:2,exMaths:true};render()}},
+ {wk:2,t:"Evidence Room: Level 3 (2 minutes per question)",done:()=>lvPts(caseById("quest"),3)>0,go:()=>startCase(ci_("quest"),3,false),need:()=>unlockedLevel(caseById("quest"))>=3},
+ {wk:2,t:"The Tense Detective: play Level 1",done:()=>lvPts(caseById("tense"),1)>0,go:()=>startCase(ci_("tense"),1,false)},
+ {wk:2,t:"📝 Exam mode: 20 questions, Level 3",done:()=>exHist().some(h=>h.n===20&&h.level===3),go:()=>{state={view:"examSetup",exN:20,exL:3,exMaths:true};render()}},
+ {wk:2,t:"Day before the exam: play a case you love, then REST 🎻",done:()=>!!progress.restDay,manual:true}
+];
+function missionHTML(){
+  const cur=MISSIONS.findIndex(m=>!m.done()), doneN=MISSIONS.filter(m=>m.done()).length, open=state.showMissions;
+  const row=(m,i)=>{const d=m.done(),isCur=i===cur,locked=m.need&&!m.need();
+    return `<li class="mi ${d?"done":""} ${isCur?"cur":""}"><span class="mk">${d?"✅":isCur?"▶":"○"}</span><span class="mt">${i+1}. ${esc(m.t)}${locked&&!d?` <small>(unlocks when you score 10+ at the level before)</small>`:""}</span>
+      ${!d&&!locked?(m.manual?`<button class="btn mini" data-mdone="${i}">I did it!</button>`:`<button class="btn ${isCur?"":"ghost"} mini" data-mgo="${i}">Go</button>`):""}</li>`};
+  const curM=MISSIONS[cur];
+  return `<section class="card mission"><div class="row" style="justify-content:space-between"><div><p class="label">🗺️ Mission order · ${doneN} of ${MISSIONS.length} done</p>
+    <h3>${cur<0?"All missions complete — you're exam ready! 🏆":"Next: "+esc(curM.t)}</h3></div>
+    ${cur>=0&&!(curM.need&&!curM.need())?(curM.manual?`<button class="btn" data-mdone="${cur}">I did it!</button>`:`<button class="btn" data-mgo="${cur}">▶ Start</button>`):""}</div>
+    <div class="tprog"><span style="width:${Math.round(doneN/MISSIONS.length*100)}%"></span></div>
+    <button class="linkbtn" id="mtoggle">${open?"Hide":"Show"} the full list</button>
+    ${open?`<p class="label">Week 1: crack the evidence</p><ol class="mlist">${MISSIONS.map((m,i)=>m.wk===1?row(m,i):"").join("")}</ol><p class="label">Week 2: get exam-ready</p><ol class="mlist">${MISSIONS.map((m,i)=>m.wk===2?row(m,i):"").join("")}</ol>
+    <p class="hint">Remember: ✏️ Draw it on paper first · 🔎 Question first, then the source · 🤔 Fact = I could check it · 🚨 “Not possible to tell”? Look for a second answer.</p>`:""}
+  </section>`;
+}
+function wireMissions(){
+  app.querySelectorAll("[data-mgo]").forEach(b=>b.onclick=()=>MISSIONS[+b.dataset.mgo].go());
+  app.querySelectorAll("[data-mdone]").forEach(b=>b.onclick=()=>{progress.restDay=true;save();confetti();render(true)});
+  const t=document.getElementById("mtoggle"); if(t) t.onclick=()=>{state.showMissions=!state.showMissions;render(true)};
+}
+/* achievements */
+function bestLevel(c){for(const l of [3,2,1]) if(lvPts(c,l)>0) return l;return 0}
+function trophies(){
+  const played=CASES.filter(c=>progress[c.id]), ex=progress.exam||{}, mysteries=MYSTERIES.filter(m=>progress[m.key]).length;
+  return [
+   ["🔍","First case cracked","Solve any case",played.length>0],
+   ["💯","Perfect round","6 out of 6 right first time",CASES.some(c=>(progress[c.id]||{}).best>=6)],
+   ["🏆","Mystery solver","Catch your first thief",mysteries>=1],
+   ["🏆🏆🏆","Master detective","Solve 3 mysteries",mysteries>=3],
+   ["👑","Case closed for good","Solve all 6 mysteries",mysteries>=MYSTERIES.length],
+   ["🗝️","Level 2 unlocked","Score 10+ at Level 1",CASES.some(c=>unlockedLevel(c)>=2)],
+   ["🎓","Exam level reached","Play any Level 3 round",CASES.some(c=>lvPts(c,3)>0)],
+   ["🦉","Owl's star pupil","Finish 3 walkthroughs",Object.keys(progress.tut||{}).length>=3],
+   ["🪑","Seating sage","12+ at Level 2 in Seating Plans",lvPts(caseById("seats"),2)>=12],
+   ["🔒","Logic locksmith","12+ at Level 3 in Logic Locks",lvPts(caseById("logic"),3)>=12],
+   ["🤥","Lie detector","12+ at Level 2 in the Liars' Lounge",lvPts(caseById("liars"),2)>=12],
+   ["📂","Evidence expert","12+ at Level 3 in the Evidence Room",lvPts(caseById("quest"),3)>=12],
+   ["⚖️","Sharp lawyer","12+ in the Courtroom and the Flaw Finders",lvPts(caseById("court"),1)>=12&&lvPts(caseById("flaws"),1)>=12],
+   ["📝","Exam ready","8+ out of 10 in Exam mode",(ex.best10||0)>=8],
+   ["🗺️","Explorer","Start all 13 cases",played.length>=CASES.length],
+   ["⭐","Superintendent","Reach Superintendent rank",["Superintendent","Chief Superintendent"].includes(rank())]
+  ];
+}
+function caseStatus(c){
+  if(!progress[c.id]) return ["Not started","ns"];
+  const l=bestLevel(c), p=lvPts(c,l);
+  if(p>=15) return [l>=2?`Strong at Level ${l} ⭐`:"Strong ⭐","st"];
+  if(p>=10) return [`Getting there (Level ${l})`,"gt"];
+  return ["Keep practising","kp"];
+}
+function achievementsView(){
+  const tr=trophies(), got=tr.filter(t=>t[3]).length;
+  const strong=CASES.filter(c=>caseStatus(c)[1]==="st"), gt=CASES.filter(c=>caseStatus(c)[1]==="gt"), kp=CASES.filter(c=>caseStatus(c)[1]==="kp"), ns=CASES.filter(c=>!progress[c.id]);
+  const hist=exHist(); const last=hist.slice(-6);
+  const trend=last.length>=2?(()=>{const a=last[0].right/last[0].n,b=last[last.length-1].right/last[last.length-1].n;return b>a?"Your exam scores are going UP 📈 — brilliant!":b===a?"Your exam scores are steady. Drawing it on paper every time will push them up.":"The last exam was a bit harder — check the missed questions and their sketches."})():"";
+  const cur=MISSIONS.find(m=>!m.done());
+  const name=playerName?esc(playerName):"Detective";
+  app.innerHTML=`
+  <div class="row"><button class="btn ghost" id="back">← All cases</button></div>
+  <section class="card"><p class="label">🏆 My achievements</p><h2>${name}'s detective file</h2>
+    <div class="statrow"><div><b>${rank()}</b><span>Rank</span></div><div><b>${totalPoints()}</b><span>🔍 magnifiers</span></div><div><b>${MYSTERIES.filter(m=>progress[m.key]).length}/${MYSTERIES.length}</b><span>Mysteries solved</span></div><div><b>${got}/${tr.length}</b><span>Trophies</span></div></div>
+  </section>
+  <section class="card"><p class="label">Trophy cabinet</p>
+    <div class="trophies">${tr.map(([ic,t,how,ok])=>`<div class="trophy ${ok?"got":""}"><span class="ti">${ok?ic:"🔒"}</span><b>${esc(t)}</b><small>${esc(how)}</small></div>`).join("")}</div>
+  </section>
+  <section class="card"><p class="label">🦉 Inspector Owl's feedback</p>
+    ${strong.length?`<div class="fbk good2"><b>⭐ You're great at:</b> ${strong.map(c=>esc(c.title)).join(", ")}. Be proud of these — you've really learned the methods!</div>`:""}
+    ${gt.length?`<div class="fbk"><b>📈 Getting stronger:</b> ${gt.map(c=>esc(c.title)).join(", ")}. A couple more rounds and these will be strong too.</div>`:""}
+    ${kp.length?`<div class="fbk warn"><b>💪 Let's work on:</b> ${kp.map(c=>esc(c.title)).join(", ")}. Try the 🦉 Show me how walkthrough first, then Level 1. Every detective finds some cases tricky at first!</div>`:""}
+    ${ns.length?`<div class="fbk"><b>🗺️ Still to explore:</b> ${ns.map(c=>esc(c.title)).join(", ")}.</div>`:""}
+    ${trend?`<div class="fbk">${trend}</div>`:""}
+    ${cur?`<div class="fbk"><b>➡️ Your next mission:</b> ${esc(cur.t)}</div>`:`<div class="fbk good2"><b>🎉 Every mission is complete. You're ready!</b></div>`}
+  </section>
+  <section class="card"><p class="label">Report card</p>
+    <div class="scroll"><table class="ev rc"><tr><th style="text-align:left">Case</th><th>L1</th><th>L2</th><th>L3</th><th>How it's going</th></tr>
+    ${CASES.map(c=>{const [st,k]=caseStatus(c);return `<tr><td style="text-align:left">${esc(c.tab.replace("CASE ",""))}. ${esc(c.title)}</td>${[1,2,3].map(l=>`<td>${lvPts(c,l)||"–"}</td>`).join("")}<td class="st-${k}">${st}</td></tr>`}).join("")}</table></div>
+    <p class="hint">Numbers are your best 🔍 in one round (18 is perfect for 6 puzzles).</p>
+  </section>
+  <section class="card"><p class="label">📝 Exam mode history</p>
+    ${hist.length?`<div class="scroll"><table class="ev"><tr><th>Date</th><th>Questions</th><th>Level</th><th>Score</th></tr>${hist.slice().reverse().slice(0,10).map(h=>`<tr><td>${esc(h.at)}</td><td>${h.n}</td><td>${h.level}</td><td>${h.right}/${h.n}${h.right>=h.n*0.8?" 🌟":""}</td></tr>`).join("")}</table></div>`:`<p>No exams yet. Try 📝 Exam mode with pencil and paper!</p>`}
+  </section>`;
+  back();
 }
 
 /* ----- step-by-step guided walkthroughs ("Show me how") ----- */
@@ -1911,6 +2037,7 @@ function tutorStep(){
 }
 function tutor(){
   const c=CASES[state.ci], T=TUT[c.id], s=T.steps[state.ts], N=T.steps.length, last=state.ts===N-1;
+  if(last&&state.tok){progress.tut=progress.tut||{};if(!progress.tut[c.id]){progress.tut[c.id]=true;save()}}
   const coach=(playerName?esc(playerName)+", ":"")+s.say;
   let task="";
   if(s.ask) task=`<div class="opts">${s.ask.map((o,i)=>{const cls=state.tok&&i===s.a?"right":state.tpicked.includes(i)?"wrong":"";
