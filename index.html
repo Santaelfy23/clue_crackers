@@ -161,6 +161,11 @@ table.ev th{color:var(--muted);font-weight:400;font-size:.9rem}
 .spanel{display:grid;gap:8px;min-width:0}.spanel p{margin:0}
 svg.qchart{width:100%;max-width:420px;display:block;margin:0 auto}
 .srchint{background:color-mix(in srgb,var(--ok) 14%,var(--desk));border-radius:6px;padding:6px 10px}
+.focus h3{color:var(--fg)}
+.fi{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.fi .fit{flex:1;min-width:0;display:grid;gap:3px}.fi small{color:var(--muted)}
+.fi.done{opacity:.7}.fi.cur{border-color:var(--btn);background:color-mix(in srgb,var(--btn) 10%,var(--desk))}
+.folder.locked{opacity:.5}.folder.focuscase{border-color:var(--btn)}
 .mission h3{color:var(--fg)}
 .mlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .mi{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
@@ -1415,6 +1420,8 @@ let cloudRef=null, cloudTimer=null;
 function mergeProg(a,b){const o=Object.assign({},a);
   for(const k in b){const y=b[k];
     if(typeof y==="boolean"){o[k]=!!(o[k]||y);continue}
+    if(k==="focus"){o.focus=y;continue}
+    if(k==="focusLog"){const f=Object.assign({},o.focusLog||{});for(const d in y)f[d]=Math.max(f[d]||0,y[d]);o.focusLog=f;continue}
     if(k==="tut"){o.tut=Object.assign({},o.tut||{},y);continue}
     if(k==="exam"){const x=o.exam||{},e=Object.assign({},x,y);for(const n of ["best10","best20"]) if(x[n]!=null||y[n]!=null) e[n]=Math.max(x[n]||0,y[n]||0);e.history=(x.history||[]).concat(y.history||[]).slice(-30);o.exam=e;continue}
     if(!y||typeof y!=="object")continue;
@@ -1468,7 +1475,7 @@ const L="ABCDE";
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(stay){
   const y=window.scrollY; setTimeout(()=>window.scrollTo({top:stay?y:0}),0);
-  ({home,brief,puzzle,end:endView,accuse,tutor,examSetup:examSetupView,exam:examView,examEnd:examEndView,trophies:achievementsView})[state.view]();
+  ({home,brief,puzzle,end:endView,accuse,tutor,examSetup:examSetupView,exam:examView,examEnd:examEndView,trophies:achievementsView,pin:pinView})[state.view]();
 }
 function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{state={view:"home"};render()}}
 
@@ -1476,7 +1483,8 @@ function back(){const b=document.getElementById("back");if(b)b.onclick=()=>{stat
 function home(){
   const run=loadRun();
   const folder=c=>{const i=CASES.indexOf(c),p=progress[c.id],ul=unlockedLevel(c);
-    return `<button class="folder" data-tab="${c.tab}" data-i="${i}">
+    const lk=caseLocked(c), fc=focusOn()&&FOCUS_IDS.includes(c.id);
+    return `<button class="folder ${lk?"locked":""} ${fc?"focuscase":""}" data-tab="${c.tab}${fc?" · 🎯 FOCUS":""}${lk?" · 🔒":""}" data-i="${i}">
       ${p?`<span class="stamp">SOLVED</span>`:""}
       <h2>${esc(c.title)}</h2><p>${esc(c.blurb)}</p>
       <div class="meta"><span class="lvls">${[1,2,3].map(l=>`<span class="lv ${l<=ul?"open":""}">${l<=ul?"":"🔒"}L${l}</span>`).join("")}</span><span>${p?`🔍 ${casePts(c)}`:"Not started"}</span></div>
@@ -1499,15 +1507,17 @@ function home(){
     <form class="namebox" id="nameform"><input id="pname" maxlength="20" placeholder="Your name" autocomplete="off"><button class="btn" type="submit">Join the squad</button></form></section>`}
   ${run?`<div class="resume"><div><p class="label">Case in progress</p><b>${esc(CASES[run.ci].title)}</b> · ${LEVELS[run.level||1].tag} · puzzle ${run.pi+1} of ${run.round.length} · 🔍 ${run.pts}</div>
     <div class="row"><button class="btn" id="resume">▶ Carry on</button><button class="btn ghost mini" id="drop">Start fresh</button></div></div>`:""}
-  ${missionHTML()}
+  ${focusOn()?focusHTML():missionHTML()}
   <button class="exam-cta trophy-cta" id="trophygo"><span class="owl" aria-hidden="true">🏆</span><span><b>My achievements &amp; feedback</b><small>${trophies().filter(t=>t[3]).length} trophies · report card · Inspector Owl's feedback</small></span></button>
   <button class="exam-cta" id="examgo"><span class="owl" aria-hidden="true">📝</span><span><b>Exam mode</b><small>Pencil and paper only, against the clock${progress.exam&&progress.exam.best10!=null?` · Best: ${progress.exam.best10}/10`:""}${progress.exam&&progress.exam.best20!=null?` · ${progress.exam.best20}/20`:""}</small></span></button>
   ${MYSTERIES.map(mystery).join("")}
   <div class="grownups"><p class="label">💾 Save code</p>
-  <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
+  <div class="backup"><div class="row"><button class="btn ghost mini" id="copyb">Copy backup code</button><button class="btn ghost mini" id="showr">Restore from a code</button><button class="btn ghost mini" id="focustog">🔐 ${focusOn()?"Focus mode: ON (grown-ups)":"Turn on Focus mode (grown-ups)"}</button>${playerName?`<button class="btn ghost mini" id="rename">Change name</button>`:""}</div>
     <textarea id="bcode" hidden aria-label="Backup code"></textarea>
     <div class="row" id="rrow" hidden><button class="btn mini" id="dorestore">Restore</button><span class="small" id="bmsg"></span></div></div></div>`;
-  app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{const ci=+b.dataset.i;state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()});
+  app.querySelectorAll(".folder").forEach(b=>b.onclick=()=>{const ci=+b.dataset.i;if(caseLocked(CASES[ci])){state={view:"pin",pinFor:ci};render();return}state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()});
+  app.querySelectorAll("[data-fgo]").forEach(b=>b.onclick=()=>focusGo(b.dataset.fgo));
+  document.getElementById("focustog").onclick=()=>{state={view:"pin",pinFor:focusOn()?"off":"on"};render()};
   app.querySelectorAll("[data-acc]").forEach(b=>b.onclick=()=>{state={view:"accuse",mi:+b.dataset.acc,wrong:[]};render()});
   wireMissions();
   document.getElementById("trophygo").onclick=()=>{state={view:"trophies"};render()};
@@ -1613,6 +1623,7 @@ function next(){
   state.firstSolve=!prev;
   progress[c.id]={best:Math.max(score,prev?prev.best||0:0),points:lv[1]||0,lv};
   state.newLevel=unlockedLevel(c)>before?unlockedLevel(c):0;
+  if(FOCUS_IDS.includes(c.id)){progress.focusLog=progress.focusLog||{};progress.focusLog[today()]=(progress.focusLog[today()]||0)+1}
   save(); clearRun(); confetti(); chime(true);
   state.view="end"; state.score=score; render();
 }
@@ -1697,18 +1708,18 @@ function examSetupView(){
     <div class="levels">${[10,20].map(n=>`<button class="lvbtn ${state.exN===n?"on":""}" data-n="${n}"><b>${n} questions</b><span>${n} minutes</span><small>${ex["best"+n]!=null?`Best: ${ex["best"+n]}/${n}`:"Not tried yet"}</small></button>`).join("")}</div>
     <p class="label">How hard?</p>
     <div class="levels">${[2,3].map(l=>`<button class="lvbtn ${state.exL===l?"on":""}" data-l="${l}"><b>${LEVELS[l].tag}</b><span>${LEVELS[l].name}</span><small>${l===3?"Real exam difficulty":"A good place to start"}</small></button>`).join("")}</div>
-    <label class="tick"><input type="checkbox" id="exm" ${state.exMaths?"checked":""}> Include maths questions</label>
+    ${focusOn()&&!focusDone()?`<p class="hint">🎯 Focus mode is on, so the questions are all logic, arguments and truth-tellers.</p>`:`<label class="tick"><input type="checkbox" id="exm" ${state.exMaths?"checked":""}> Include maths questions</label>`}
     <div class="row"><button class="btn" id="exgo">⏱️ Start the exam</button></div>
   </section>`;
   back();
   app.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{state.exN=+b.dataset.n;render(true)});
   app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{state.exL=+b.dataset.l;render(true)});
-  document.getElementById("exm").onchange=e=>{state.exMaths=e.target.checked};
+  const exm=document.getElementById("exm"); if(exm) exm.onchange=e=>{state.exMaths=e.target.checked};
   document.getElementById("exgo").onclick=startExam;
 }
 let examTimer=null;
 function startExam(){
-  const n=state.exN, level=state.exL, ids=EXAM_CASES.filter(id=>state.exMaths||!["vault","safe","count"].includes(id));
+  const n=state.exN, level=state.exL, ids=focusOn()&&!focusDone()?EXAM_CASES.filter(id=>FOCUS_IDS.includes(id)):EXAM_CASES.filter(id=>state.exMaths||!["vault","safe","count"].includes(id));
   const used=new Set(), qs=[]; let order=shuffle(ids);
   while(qs.length<n){if(!order.length)order=shuffle(ids);const p=examPick(order.shift(),level,used);if(p)qs.push(p)}
   state={view:"exam",exN:n,exL:level,exMaths:state.exMaths,qs,ans:Array(n).fill(null),i:0,end:Date.now()+n*60000,start:Date.now(),skipped:[]};
@@ -1881,6 +1892,55 @@ function achievementsView(){
     ${hist.length?`<div class="scroll"><table class="ev"><tr><th>Date</th><th>Questions</th><th>Level</th><th>Score</th></tr>${hist.slice().reverse().slice(0,10).map(h=>`<tr><td>${esc(h.at)}</td><td>${h.n}</td><td>${h.level}</td><td>${h.right}/${h.n}${h.right>=h.n*0.8?" 🌟":""}</td></tr>`).join("")}</table></div>`:`<p>No exams yet. Try 📝 Exam mode with pencil and paper!</p>`}
   </section>`;
   back();
+}
+
+/* ----- Focus mode: logic, arguments and truth first (parent PIN) ----- */
+const FOCUS=[
+ {id:"liars",lvl:3,need:10,why:"Truth-tellers: “exactly one is telling the truth”"},
+ {id:"logic",lvl:3,need:12,why:"Must be true, arrows, only / some / NOT"},
+ {id:"args",lvl:2,need:12,why:"Strengthen and weaken an argument"},
+ {id:"court",lvl:1,need:12,why:"Hidden assumptions and best conclusions"},
+ {id:"flaws",lvl:1,need:12,why:"Spot the mistake in the reasoning"},
+ {id:"quest",lvl:2,need:12,why:"Quest-style sources: fact, opinion, evidence"}
+];
+const FOCUS_IDS=FOCUS.map(f=>f.id);
+const focusOn=()=>!(progress.focus&&progress.focus.on===false);
+const focusPin=()=>(progress.focus&&progress.focus.pin)||"2711";
+const fMet=f=>lvPts(caseById(f.id),f.lvl)>=f.need;
+const focusDone=()=>FOCUS.every(fMet);
+const caseLocked=c=>focusOn()&&!focusDone()&&!FOCUS_IDS.includes(c.id);
+const today=()=>new Date().toISOString().slice(0,10);
+const focusToday=()=>((progress.focusLog||{})[today()]||0);
+function focusHTML(){
+  const met=FOCUS.filter(fMet).length, next=FOCUS.find(f=>!fMet(f));
+  const row=f=>{const c=caseById(f.id),ul=unlockedLevel(c),pts=lvPts(c,f.lvl),ok=fMet(f),reach=ul>=f.lvl;
+    const pct=Math.min(100,Math.round(pts/f.need*100));
+    return `<li class="fi ${ok?"done":""} ${next===f?"cur":""}"><div class="fit"><b>${ok?"✅":next===f?"▶":"○"} ${esc(c.title)}</b><small>${esc(f.why)}</small>
+      <small>Target: <b>${f.need}+ 🔍 at Level ${f.lvl}</b> · best so far: ${pts}${reach?"":` · first unlock Level ${f.lvl} (score 10+ at Level ${ul})`}</small>
+      <div class="tprog"><span style="width:${pct}%"></span></div></div>
+      ${ok?"":`<button class="btn ${next===f?"":"ghost"} mini" data-fgo="${f.id}">${reach?"Play L"+f.lvl:"Play L"+ul}</button>`}</li>`};
+  return `<section class="card focus"><div class="row" style="justify-content:space-between"><div><p class="label">🎯 Focus mode · ${met} of ${FOCUS.length} targets hit</p>
+    <h3>${focusDone()?"All focus targets hit — every case is unlocked! 🏆":"Logic · Arguments · Truth"}</h3></div>
+    ${next?`<button class="btn" data-fgo="${next.id}">▶ Next focus round</button>`:""}</div>
+    <p class="hint">Today: <b>${focusToday()}</b> focus round${focusToday()===1?"":"s"} ${focusToday()>=2?"✅ Great work!":"· aim for 2 a day"}. ${focusDone()?"":"Other cases unlock when all six targets are hit."} Stuck? Use 🦉 Show me how inside each case.</p>
+    <ol class="mlist">${FOCUS.map(row).join("")}</ol></section>`;
+}
+function focusGo(id){const c=caseById(id),f=FOCUS.find(x=>x.id===id),ul=unlockedLevel(c);startCase(ci_(id),Math.min(f.lvl,ul),false)}
+function pinView(){
+  const turningOn=state.pinFor==="on", off=state.pinFor==="off";
+  app.innerHTML=`<div class="row"><button class="btn ghost" id="back">← Back</button></div>
+  <section class="card"><p class="label">🔐 For grown-ups</p>
+    <h2>${turningOn?"Turn on Focus mode":off?"Turn off Focus mode":"This case is locked"}</h2>
+    <p>${turningOn?"Choose a 4-digit PIN. You'll need it to turn Focus mode off or open a locked case.":off?"Enter the PIN to turn Focus mode off. All cases will be open.":"Focus mode is on: finish the 🎯 focus cases first. A grown-up can enter the PIN to open this case once."}</p>
+    <form id="pinform" class="namebox"><input id="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" autocomplete="off"><button class="btn" type="submit">${turningOn?"Turn on":"OK"}</button></form>
+    <p class="small" id="pinmsg"></p></section>`;
+  document.getElementById("back").onclick=()=>{state={view:"home"};render()};
+  document.getElementById("pinform").onsubmit=e=>{e.preventDefault();const v=document.getElementById("pin").value.trim();
+    if(!/^\d{4}$/.test(v)){document.getElementById("pinmsg").textContent="Please enter 4 digits.";return}
+    if(turningOn){progress.focus={on:true,pin:v};save();state={view:"home"};render();return}
+    if(v!==focusPin()){document.getElementById("pinmsg").textContent="That PIN isn't right.";return}
+    if(off){progress.focus={on:false,pin:focusPin()};save();state={view:"home"};render();return}
+    const ci=state.pinFor;state={view:"brief",ci,level:unlockedLevel(CASES[ci])};render()};
 }
 
 /* ----- step-by-step guided walkthroughs ("Show me how") ----- */
