@@ -309,9 +309,11 @@ const CASES = [
     "Never turn an arrow round. Reads music does NOT lead to Choir.",
     "The backwards trick: flip it AND add “not”. Not reads music ➜ Not choir.",
     "Circle NOT in the question. Mark each statement True or False before looking at A–D.",
-    "Watch the size words: all, some, often, only."
+    "Watch the size words: all, some, often, only, every time.",
+    "🃏 Trick card: USUALLY ≠ ALWAYS. An option that turns “usually” into “always” is wrong.",
+    "The answer is often the same rule in different words: “only ever good dreams” = “never bad dreams”."
   ],
-  fromTest:"From your test: Q5, Q6, Q20, Q40.",
+  fromTest:"From your test: Q5, Q6, Q20, Q40 — and Atom’s Paulina and the socks.",
   evidence:"Everyone who wears glasses signed the visitors' book. The thief did NOT sign it. (Use the backwards trick!)",
   extra:[
     {q:`<p>“All the pupils in Class 5B have a library card.”</p><p class="ask">If this is true, which one of these <u>must</u> also be true?</p>`,
@@ -1328,10 +1330,39 @@ const QUEST_CASES=[{
   fromTest:"Matches the Quest Creative Comprehension section (6–7 sources, about 20 minutes).",
   evidence:"The pumpkin went missing at 4:15pm — exactly when one of the Garden Club sessions ended (check the timetable in the garden sources!)."
 }];
+/* ----- extra logic puzzles: "only ever", usually vs always, reworded rules ----- */
+const LOGIC_SIZE=[
+ {lvl:3,q:`<ul><li>Leo likes wearing his red scarf to football matches.</li><li>When Leo wears his red scarf, his team only ever wins.</li><li>Leo's team usually wins on Saturdays.</li></ul><p class="ask">Which one of these do you know <u>must</u> be true?</p>`,
+  opts:["On Saturdays, Leo always wears his red scarf.","Leo's team never loses when Leo wears his red scarf.","Leo wears his red scarf to every match.","Leo's team only wins when Leo wears his scarf."],a:1,
+  clues:["Write the arrow: Scarf → team wins. Circle the size words: only ever, usually.","Arrows only go forwards. A win doesn't have to come from the scarf.","“Only ever wins” is the same as “never loses”. Look for the rule in different words."],
+  why:["Two traps: the arrow is turned round, AND “usually” has become “always”. If he wore it every Saturday, they'd ALWAYS win then.",null,"We're only told he LIKES wearing it, not that he always does.","Arrow turned round: the team could win without the scarf too."],
+  explain:"Scarf → wins. “Only ever wins” means the same as “never loses”, so B is the same rule in different words. This is exactly the Paulina and the socks question."},
+ {lvl:3,q:`<ul><li>On school days, Ben usually walks to school.</li><li>When it rains, Ben always takes the bus.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+  opts:["Ben always walks to school on school days.","If Ben walked to school, it was not raining.","If Ben takes the bus, it must be raining.","It never rains on school days."],a:1,
+  clues:["Arrow: Rain → bus. Circle “usually” and “always”.","Backwards trick: flip the arrow AND add “not”. Not bus → ?","If he walked, he didn't take the bus, so…"],
+  why:["“Usually” has turned into “always”.",null,"Arrow turned round: he might take the bus for other reasons.","Nothing says this."],
+  explain:"Rain → bus. Backwards trick: no bus (he walked) → no rain."},
+ {lvl:2,q:`<ul><li>Every time Amira practises the piano, she only ever plays happy songs.</li><li>Amira often practises in the morning.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+  opts:["Amira always practises in the morning.","If Amira plays a happy song, she must be practising.","Amira never plays sad songs when she practises.","Amira never plays the piano in the evening."],a:2,
+  clues:["Arrow: Practising → happy songs. Circle the size words: only ever, often.","“Only ever happy” means the same as…?","Look for the rule in different words."],
+  why:["“Often” isn't “always”.","Arrow turned round: she could play happy songs at other times too.",null,"We aren't told anything about the evening."],
+  explain:"“Only ever plays happy songs” = “never plays sad songs”. Same rule, new words."},
+ {lvl:2,q:`<p>“Every cat at the shelter has been to the vet.”</p><p class="ask">If this is true, which one of these <u>must</u> also be true?</p>`,
+  opts:["Every animal that has been to the vet is a shelter cat.","Some cats at the shelter have never been to the vet.","The shelter only has cats.","No cat at the shelter has missed going to the vet."],a:3,
+  clues:["Arrow: Shelter cat → been to the vet.","Watch for the same rule reworded with “no” or “never”.","“Every” cat has been = “no” cat has missed it."],
+  why:["Arrow turned round.","That breaks the rule.","Nothing says there are no other animals.",null],
+  explain:"“Every cat has been to the vet” is the same as “no cat has missed the vet”. Exams love rewording a rule like this."},
+ {lvl:2,q:`<ul><li>When Zoe stays with her gran, she only ever eats pancakes for breakfast.</li><li>Zoe sometimes stays with her gran at weekends.</li></ul><p class="ask">Which one of these <u>must</u> be true?</p>`,
+  opts:["Zoe only eats pancakes when she stays with her gran.","When Zoe stays with her gran, she never has cereal for breakfast.","Zoe stays with her gran every weekend.","Zoe eats pancakes every weekend."],a:1,
+  clues:["Arrow: At gran's → pancakes only. Circle: only ever, sometimes.","“Only ever pancakes” means no other breakfast.","Which option is the same rule reworded?"],
+  why:["Arrow turned round — she could eat pancakes at home too.",null,"“Sometimes” isn't “every”.","“Sometimes” at gran's doesn't mean every weekend."],
+  explain:"“Only ever pancakes” at gran's = never cereal (or anything else) at gran's."}
+];
 /* ----- assemble cases ----- */
 CASES[2].puzzles.push(CASES[2].extra.shift());          // 6 originals in every first-mystery case
 CASES[0].gen="genSeating";
-CASES[1].exam=LOGIC_EXAM; CASES[2].exam=ARGS_EXAM;
+CASES[1].exam=LOGIC_EXAM.concat(LOGIC_SIZE.filter(p=>p.lvl===3)); CASES[2].exam=ARGS_EXAM;
+CASES[1].extra.push(...LOGIC_SIZE.filter(p=>p.lvl===2));
 CASES.push(...NEW_CASES,...MATHS_CASES,...TENSE_CASES,...QUEST_CASES);
 const GENS={genSeating,genRanking,genLiars,genGrid,genVault,genSafe,genCounting,genTense};
 const LEVELS=[null,{name:"Trainee",tag:"Level 1"},{name:"Detective",tag:"Level 2"},{name:"Exam level",tag:"Level 3"}];
@@ -2006,6 +2037,8 @@ logic:{title:"How to crack “must be true” logic",steps:[
  {say:"Leo CAN'T read music. The backwards trick: flip the arrow AND add “not”. Which is right?",ask:["Not reads music ➜ Not choir","Not choir ➜ Not reads music"],a:0,no:[null,"Flip it AND add not: Not reads music ➜ Not choir."],ok:"Yes!"},
  {say:"So which must be true?",ask:["Leo is not in the choir.","Zara is in the choir.","Everyone who reads music is in the choir."],a:0,no:[null,"Arrow turned round.","Arrow turned round again."],ok:"That's Q6 from your test (Harry the builder) — same pattern."},
  {say:"Chains: “Everyone who plays chess plays draughts. Nobody who plays draughts plays snap.” Join the arrows: Chess ➜ Draughts ➜ Not snap. Di plays chess. What do we know?",ask:["Di doesn't play snap","Di plays snap","Nothing"],a:0,no:[null,"Follow the chain: chess ➜ draughts ➜ NOT snap.","Follow the chain forwards!"],ok:"Follow the chain forwards."},
+ {say:"Two more traps. “When Leo wears his scarf, his team only ever wins. They usually win on Saturdays.” Is “Leo always wears his scarf on Saturdays” true?",ask:["No — the arrow is turned round, and “usually” isn't “always”","Yes"],a:0,no:[null,"Wins don't have to come from the scarf, and “usually” would become “always” if he wore it every Saturday."],ok:"Circle size words: usually, always, only, never, some."},
+ {say:"Which sentence means the SAME as “his team only ever wins when he wears the scarf”?",ask:["His team never loses when he wears the scarf","His team only wins when he wears the scarf"],a:0,no:[null,"That turns the arrow round!"],ok:"“Only ever good” = “never bad”. The right answer is often the rule in different words."},
  {say:"Watch out for “only”: “Only pupils who finish their homework can go on the trip.” Which arrow?",ask:["Went on trip ➜ Finished homework","Finished homework ➜ Went on trip"],a:0,no:[null,"“Only X can do Y” means Y ➜ X. Finishing homework lets you go — it doesn't mean you went."],ok:"“Only X can do Y” means Y ➜ X. And remember: circle the word NOT in any question!"}
 ]},
 args:{title:"How to crack argument questions",steps:[
