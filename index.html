@@ -166,6 +166,12 @@ svg.qchart{width:100%;max-width:420px;display:block;margin:0 auto}
 .fi .fit{flex:1;min-width:0;display:grid;gap:3px}.fi small{color:var(--muted)}
 .fi.done{opacity:.7}.fi.cur{border-color:var(--btn);background:color-mix(in srgb,var(--btn) 10%,var(--desk))}
 .folder.locked{opacity:.5}.folder.focuscase{border-color:var(--btn)}
+.dexpr{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;justify-content:center;font-size:1.4rem;padding:8px 0}
+.dbox{width:44px;height:50px;border:2px dashed var(--line);border-radius:8px;background:var(--raised);font-size:1.4rem;font-weight:700;color:var(--fg)}
+.dbox.filled{border-style:solid;border-color:var(--btn);color:var(--manila)}
+.dbox.sup{width:32px;height:34px;font-size:1rem;margin-left:-4px;margin-top:-6px}
+.dop,.dfix{align-self:center;font-weight:700;padding:0 2px}
+.dout{text-align:center;min-height:1.4em}.dout .good{color:var(--ok);font-weight:700}.dout .bad{color:var(--stamp);font-weight:700}
 .mission h3{color:var(--fg)}
 .mlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .mi{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
@@ -1194,17 +1200,24 @@ const ARRIVALS=[ // group, base(=plural present), past, past participle, rest
 const DREAMY=[["hum","hums","hummed","hummed","humming","a tune"],["think","thinks","thought","thought","thinking","about the holidays"],
   ["whistle","whistles","whistled","whistled","whistling","a song"],["smile","smiles","smiled","smiled","smiling","at the cat"]];
 const MOVES=[["climb","climbs","into bed"],["walk","walks","to school"],["open","opens","the front door"],["sit","sits","down for breakfast"]];
-const WHY={past:"This moves it into the PAST, but the sentence isn't about the past.",future:"This moves it into the FUTURE, but the sentence isn't about the future.",
+const HABITS=[["grow","grows","grew","grown","growing","sunflowers in her classroom"],["bake","bakes","baked","baked","baking","a birthday cake for the class"],
+  ["visit","visits","visited","visited","visiting","the seaside"],["play","plays","played","played","playing","chess with Grandpa"],
+  ["go","goes","went","gone","going","camping in Wales"],["swim","swims","swam","swum","swimming","in the lake"]];
+const WHY={now:"“Every year / every Saturday” shows a HABIT: it happens regularly, but not necessarily right now. That's the Mrs Grace sunflower trap!",always:"We can't know the future: “will always” goes further than the sentence.",past:"This moves it into the PAST, but the sentence isn't about the past.",future:"This moves it into the FUTURE, but the sentence isn't about the future.",
   present:"This moves it into the PRESENT, but the sentence is about the past.",finished:"This says it's FINISHED, but the sentence shows it is still going on.",
   extra:"This adds a detail the sentence never gives you. “Must be true” means only what the sentence proves.",order:"This gets the ORDER of events wrong. Check the joining word (while, when, after).",
   notyet:"This says it hadn't started yet — but the sentence shows it had already begun."};
 function genTense(level){
   level=level||1;
   const [N,pr]=TP[rnd(TP.length)], Pr=pr[0].toUpperCase()+pr.slice(1);
-  const kinds=level===1?["now","since","as"]:level===2?["since","had","was","as"]:["while","had","was","since"];
+  const kinds=level===1?["now","since","as","habit","habit"]:level===2?["since","had","was","as","habit"]:["while","had","was","since","habit"];
   const k=kinds[rnd(kinds.length)];
   const yrs=2+rnd(6);
   let s,right,wrong,info,tense;
+  if(k==="habit"){const [b,p3,pa,pp,ing,o]=HABITS[rnd(HABITS.length)];const T=["Every year","Every summer","Every Saturday","Every weekend"][rnd(4)];
+    s=`${T}, ${N} ${p3} ${o}.`;tense="simple present (“"+p3+"”) with “"+T.toLowerCase()+"”";info="“Every …” shows a HABIT: something that happens regularly. It does NOT tell us it is happening right now.";
+    right=`${N} ${p3} ${o} regularly.`;
+    wrong=[[`${N} is ${ing} ${o} right now.`,"now"],[`${N} ${p3} ${o} all year round.`,"extra"],[`${N} will always ${b} ${o}.`,"always"],[`${N} won't ${b} ${o} this year.`,"extra"],[`${N} ${pa} ${o} only once.`,"past"]];}
   if(k==="since"){const h=HOBBIES[rnd(HOBBIES.length)],[b,p3,pa,pp,ing,o]=h;const when=["she was six","2023","last summer","Year 3"][rnd(4)].replace("she",pr);
     s=`${N} has ${pp} ${o} since ${when}.`;tense="present perfect (“has "+pp+"”) with “since”";info="It started in the past and is still going on now.";
     right=`${N} still ${p3} ${o}.`;
@@ -1245,8 +1258,8 @@ const TENSE_CASES=[{
   id:"tense", tab:"CASE 12", title:"The Tense Detective", gen:"genTense",
   blurb:"“Which other sentence must be true?” Time clues hide in the verbs.",
   rule:"When? Finished? What order?",
-  steps:["WHEN? Underline the verbs. Past, present or future?","FINISHED or STILL GOING? “has studied … since” and “is rising” = still going. “studied” and “had finished” = finished.","WHAT ORDER? “while” and “as” = at the same time. “when … had” = the “had” part happened first.","Cross out any option that changes the time, gets the order wrong, or adds a detail the sentence doesn't give (a number, “tonight”, “for lunch”)."],
-  fromTest:"From her Atom Learning verb tests: the bread dough, Spanish, monster and headteacher questions.",
+  steps:["🃏 Trick card: simple present + “every year / every Saturday / usually” = a HABIT (it happens regularly), NOT “right now”. Simple present + “as” = happening now.","WHEN? Underline the verbs. Past, present or future?","FINISHED or STILL GOING? “has studied … since” and “is rising” = still going. “studied” and “had finished” = finished.","WHAT ORDER? “while” and “as” = at the same time. “when … had” = the “had” part happened first.","Cross out any option that changes the time, gets the order wrong, or adds a detail the sentence doesn't give (a number, “tonight”, “for lunch”)."],
+  fromTest:"From her Atom Learning verb tests: the bread dough, Spanish, monster, headteacher and Mrs Grace’s sunflowers.",
   evidence:"The time-machine log says: “The culprit HAS WORN silver gloves SINCE Monday.”"
 }];
 /* ----- Quest-style Creative Comprehension: several sources on one theme ----- */
@@ -1358,13 +1371,105 @@ const LOGIC_SIZE=[
   why:["Arrow turned round — she could eat pancakes at home too.",null,"“Sometimes” isn't “every”.","“Sometimes” at gran's doesn't mean every weekend."],
   explain:"“Only ever pancakes” at gran's = never cereal (or anything else) at gran's."}
 ];
+/* ===== Digit Lab: put the digits in the boxes (checked by trying every arrangement) ===== */
+function permsK(arr,k){if(k===0)return [[]];const out=[];arr.forEach((x,i)=>{permsK(arr.slice(0,i).concat(arr.slice(i+1)),k-1).forEach(p=>out.push([x].concat(p)))});return out}
+function evalExpr(expr,vals){const s=expr.replace(/\{(\d+)\}/g,(_,i)=>vals[+i]);return Function('"use strict";return ('+s+')')()}
+function digitOpts(ans,cands){const s=[ans];for(const c of cands){if(s.length>=4)break;if(c!==ans&&c>0&&!s.includes(c))s.push(c)}let d=1;while(s.length<4){const v=ans+(d%2?d:-d)*(ans>200?10:1);if(v>0&&!s.includes(v))s.push(v);d++}const o=shuffle(s);return {opts:o.map(String),a:o.indexOf(ans)}}
+const pickDigits=(n,from)=>shuffle(from||[1,2,3,4,5,6,7,8,9]).slice(0,n).sort((a,b)=>a-b);
+function genProduct(level){
+  for(let t=0;t<200;t++){
+    const n=level===1?4:5, d=pickDigits(n), split=level===1?2:3, want=level===1||Math.random()<0.75?"largest":"smallest";
+    const clue=level===3?(Math.random()<0.5?{t:"Exactly one of the two numbers is odd.",f:(a,b)=>(a%2)+(b%2)===1}:{t:"Both numbers are even.",f:(a,b)=>a%2===0&&b%2===0}):null;
+    const res=[];
+    for(const p of permsK(d,n)){const a=+p.slice(0,split).join(""),b=+p.slice(split).join("");if(clue&&!clue.f(a,b))continue;res.push({a,b,v:a*b,p})}
+    if(!res.length) continue;
+    res.sort((x,y)=>want==="largest"?y.v-x.v:x.v-y.v);
+    const best=res[0], second=res.find(r=>r.v!==best.v);
+    if(!second) continue;
+    const naive=[...d].sort((x,y)=>want==="largest"?y-x:x-y), nv=+naive.slice(0,split).join("")*+naive.slice(split).join("");
+    const o=digitOpts(best.v,[second.v,nv,res[Math.min(3,res.length-1)].v]);
+    const slots=Array(n).fill("_");slots.splice(split,0,"×");
+    return {gen:true,kind:"product",
+      q:`<p>Use each of these digits once: <b>${d.join(", ")}</b>.</p><p>Put them in the boxes to make the multiplication with the <b>${want}</b> possible answer.</p>${clue?`<p>Clue: ${clue.t}</p>`:""}<p class="ask">What is the answer to your multiplication?</p>`,
+      ...o,board:{type:"slots",tokens:slots,digits:d,expr:Array(n).fill(0).map((_,i)=>"{"+i+"}").join("").replace(new RegExp("^((?:\\{\\d+\\}){"+split+"})"),"$1*")},
+      clues:[want==="largest"?"Biggest digits go at the FRONT of both numbers — that's where they're worth the most.":"Smallest digits go at the front, and put the bigger digits at the ends.",
+        want==="largest"?"Share the rest so the two numbers stay balanced: the next biggest digit goes on the number with the smaller first digit.":"Make one number as small as possible? Try a couple of ways and compare.",
+        (clue?"Odd or even depends only on the LAST digit. ":"")+"Write 2–3 arrangements on paper, work each out, keep the best."],
+      explain:`Best: ${best.a} × ${best.b} = ${best.v}. A close rival: ${second.a} × ${second.b} = ${second.v}.`};
+  }
+}
+function genPowers(level){
+  for(let t=0;t<200;t++){
+    const k=level===1?2:3, d=level===1?pickDigits(4,[1,2,3,4,5]):[1,2,3,4,5,6], want=level===3&&Math.random()<0.4?"largest":"smallest";
+    const res=permsK(d,2*k).map(p=>{let v=0,txt=[];for(let i=0;i<k;i++){v+=Math.pow(p[2*i],p[2*i+1]);txt.push(`${p[2*i]}<sup>${p[2*i+1]}</sup>`)}return {v,txt:txt.join(" + "),p}});
+    res.sort((x,y)=>want==="largest"?y.v-x.v:x.v-y.v);
+    const best=res[0], second=res.find(r=>r.v!==best.v);
+    const half=level===3&&want==="smallest";
+    const ans=half?best.v/2:best.v; if(!Number.isInteger(ans)) continue;
+    const o=digitOpts(ans,[half?second.v/2:second.v,half?second.v/2+1:second.v+4].filter(Number.isInteger));
+    const tokens=[];for(let i=0;i<k;i++){if(i)tokens.push("+");tokens.push("_","^_")}
+    return {gen:true,kind:"powers",
+      q:`<p>Use each of these digits once: <b>${d.join(", ")}</b>. The small boxes are <b>powers</b> (5<sup>2</sup> means 5 × 5).</p><p>Make the sum with the <b>${want}</b> possible total.</p><p class="ask">${half?"Divide your total by 2. What do you get?":"What is your total?"}</p>`,
+      ...o,board:{type:"slots",tokens,digits:d,expr:Array(k).fill(0).map((_,i)=>`({${2*i}})**({${2*i+1}})`).join("+")},
+      clues:[want==="smallest"?"1 to any power is still 1 — so put 1 in a big box with the BIGGEST digit as its power.":"Put the biggest power on a big base — and never waste a big digit on 1.",
+        want==="smallest"?"Big number underneath, small number as the power: 5² = 25 is less than 2⁵ = 32.":"Powers grow fast: 2⁶ = 64 but 6² = 36 — check both ways round.",
+        "Test 2–3 arrangements on paper and compare."],
+      explain:`Best: ${best.txt} = ${best.v}${half?`, and ${best.v} ÷ 2 = ${ans}`:""}. Next best: ${second.txt} = ${second.v}.`};
+  }
+}
+function genDivide(level){
+  for(let t=0;t<400;t++){
+    const tpl=level===1?{n:4,tok:["_","_","÷","_","=","_"],expr:"{0}{1}/{2}-{3}",show:v=>`${v[0]}${v[1]} ÷ ${v[2]} = ${v[3]}`,ask:"What is the two-digit number?",ans:v=>+(""+v[0]+v[1])}
+      :level===2?{n:5,tok:["_","_","÷","_","=","_","_"],expr:"{0}{1}/{2}-{3}{4}",show:v=>`${v[0]}${v[1]} ÷ ${v[2]} = ${v[3]}${v[4]}`,ask:"What is the answer to the division?",ans:v=>+(""+v[3]+v[4])}
+      :{n:6,tok:["_","_","×","_","=","_","_","_"],expr:"{0}{1}*{2}-{3}{4}{5}",show:v=>`${v[0]}${v[1]} × ${v[2]} = ${v[3]}${v[4]}${v[5]}`,ask:"What is the three-digit answer?",ans:v=>+(""+v[3]+v[4]+v[5])};
+    const d=pickDigits(tpl.n);
+    const sols=permsK(d,tpl.n).filter(v=>Math.abs(evalExpr(tpl.expr,v))<1e-9);
+    if(!sols.length) continue;
+    const answers=[...new Set(sols.map(tpl.ans))]; if(answers.length!==1) continue;
+    const ans=answers[0];
+    const o=digitOpts(ans,[ans+(level===3?100:10),ans-(level===3?100:9),ans+3]);
+    return {gen:true,kind:"divide",
+      q:`<p>Use each of these digits once: <b>${d.join(", ")}</b>.</p><p>Put them in the boxes to make a correct calculation.</p><p class="ask">${tpl.ask}</p>`,
+      ...o,board:{type:"slots",tokens:tpl.tok,digits:d,expr:tpl.expr,check:true},
+      clues:["Start with the box that has the FEWEST choices — often the single-digit box.",level===3?"Two-digit × one-digit makes three digits: the answer must be at least 100, so the multiplier can't be too small.":"Turn it round: □□ ÷ □ = answer means answer × □ = □□. Try the times tables.","Each digit is used once — cross digits off on paper as you place them."],
+      explain:`The only calculation that works: ${tpl.show(sols[0])}.`};
+  }
+}
+function genBrackets(level){
+  for(let t=0;t<500;t++){
+    const k=3+rnd(level===1?3:6), A=1+rnd(level===3?4:3), B=A+2+rnd(3); if(B>9) continue;
+    const d=pickDigits(4,[1,2,3,4,5,6,7,8,9].filter(x=>x!==k&&x!==A&&x!==B));
+    const sols=[];
+    for(const p of permsK(d,4)){const L=k*(p[0]+p[1]),R=(10*A+p[2])+(10*B+p[3]);if(L===R)sols.push(p)}
+    if(!sols.length) continue;
+    const sums=[...new Set(sols.map(p=>p[0]+p[1]))]; if(sums.length!==1) continue;
+    const ans=sums[0], p=sols[0];
+    const lo=10*A+10*B, hi=lo+18;
+    const o=digitOpts(ans,[ans-1,ans+1,ans+2,p[2]+p[3]]);
+    return {gen:true,kind:"brackets",
+      q:`<p>Use each of these digits once: <b>${d.join(", ")}</b>.</p><p>Complete the equation so both sides are equal:</p><p class="tq">${k}( □ + □ ) = ${A}□ + ${B}□</p><p class="ask">What is the sum of the two numbers inside the brackets?</p>`,
+      ...o,board:{type:"slots",tokens:[String(k),"(","_","+","_",")","=",String(A)+"_","+",String(B)+"_"],digits:d,expr:`${k}*({0}+{1})-((${A}*10+{2})+(${B}*10+{3}))`,check:true},
+      clues:[`A number next to a bracket means MULTIPLY: ${k}(□ + □) = ${k} × (□ + □).`,`Range first: ${A}□ + ${B}□ is between ${lo} and ${hi}. The left side is in the ${k} times table — which ${k}× numbers fit?`,"Test those few options on paper with the leftover digits."],
+      explain:`${k}(${p[0]} + ${p[1]}) = ${k*(p[0]+p[1])} and ${A}${p[2]} + ${B}${p[3]} = ${k*(p[0]+p[1])}. The sum inside the brackets is ${ans}.`};
+  }
+}
+function genDigits(level){level=level||1;const g=[genProduct,genPowers,genDivide,genBrackets][rnd(4)];const p=g(level);if(!p)return null;p.why=p.opts.map((_,i)=>i===p.a?null:"Not quite. Use the board: try 2–3 arrangements and compare.");return p}
+
+const DIGIT_CASES=[{
+  id:"digits", tab:"CASE 14", title:"The Digit Lab", gen:"genDigits",
+  blurb:"Put the digits in the boxes: biggest products, smallest powers, missing-digit sums and brackets.",
+  rule:"Range first. Restrict. Test 2–3 on paper.",
+  steps:["Largest product: biggest digits at the FRONT of both numbers, then share the rest so the numbers stay balanced.","Powers: 1 to any power is 1. Big number underneath, small power (5² = 25 beats 2⁵ = 32).","A number next to a bracket means MULTIPLY: 6(3 + 7) = 6 × 10.","RANGE first: 1□ + 4□ must be between 50 and 68. Then RESTRICT: it's in the 6 times table → 54, 60 or 66.","Start with the box that has the FEWEST choices (e.g. single digits divisible by 3 can only be 3, 6, 9).","Never guess: write 2–3 arrangements, work them out, keep the best."],
+  fromTest:"From her Pretest Plus mock: the largest product, smallest powers, division boxes and brackets questions.",
+  evidence:"The safe's note says: “The code is 6(3 + 7).” The thief's locker number matches the code."
+}];
 /* ----- assemble cases ----- */
 CASES[2].puzzles.push(CASES[2].extra.shift());          // 6 originals in every first-mystery case
 CASES[0].gen="genSeating";
 CASES[1].exam=LOGIC_EXAM.concat(LOGIC_SIZE.filter(p=>p.lvl===3)); CASES[2].exam=ARGS_EXAM;
 CASES[1].extra.push(...LOGIC_SIZE.filter(p=>p.lvl===2));
-CASES.push(...NEW_CASES,...MATHS_CASES,...TENSE_CASES,...QUEST_CASES);
-const GENS={genSeating,genRanking,genLiars,genGrid,genVault,genSafe,genCounting,genTense};
+CASES.push(...NEW_CASES,...MATHS_CASES,...TENSE_CASES,...QUEST_CASES,...DIGIT_CASES);
+const GENS={genSeating,genRanking,genLiars,genGrid,genVault,genSafe,genCounting,genTense,genDigits};
 const LEVELS=[null,{name:"Trainee",tag:"Level 1"},{name:"Detective",tag:"Level 2"},{name:"Exam level",tag:"Level 3"}];
 const UNLOCK=10;
 
@@ -1417,7 +1522,14 @@ const MYSTERIES=[
    suspects:[
      {name:"Coach Kettle",role:"the PE teacher",face:"🏉",monday:true},
      {name:"Ms Marble",role:"the art teacher",face:"🎨",monday:false,alibi:"Ms Marble helps at Wednesday club, which ends at 4:30pm, not 4:15. Check Source E in the garden pack!"}],
-   thief:0,win:"Monday's Garden Club ends at 4:15pm (Source E) and Coach Kettle helps on Mondays. Cross-referencing sources cracked it! 🎃"}
+   thief:0,win:"Monday's Garden Club ends at 4:15pm (Source E) and Coach Kettle helps on Mondays. Cross-referencing sources cracked it! 🎃"},
+  {id:"safe",key:"caught7",title:"The Locked Safe",cases:["digits"],
+   intro:"The school's prize trophy has been taken from a locked safe! Whoever knew the code did it. Crack the Digit Lab to work out the code.",
+   traits:[["l60","Locker 60","Locker 50"]],
+   suspects:[
+     {name:"Professor Pi",role:"the maths club leader",face:"🥧",l60:false,alibi:"6(3 + 7) = 6 × 10 = 60, not 50. A number next to a bracket means multiply! Professor Pi's locker is 50."},
+     {name:"Coach Count",role:"the swimming coach",face:"🏊",l60:true}],
+   thief:1,win:"6(3 + 7) = 6 × 10 = 60, and Coach Count has locker 60. Brackets first, then multiply! 🔐"}
 ];
 const caseById=id=>CASES.find(c=>c.id===id);
 const mysteryOf=c=>MYSTERIES.find(m=>m.cases.includes(c.id));
@@ -1596,7 +1708,7 @@ function brief(){
   const og=document.getElementById("orig"); if(og) og.onclick=()=>startCase(state.ci,1,true);
 }
 function startCase(ci,level,originals){state={view:"puzzle",ci,level,pi:0,results:[],pts:0,streak:0,round:buildRound(CASES[ci],level,originals)};newPuzzle();render()}
-function newPuzzle(){Object.assign(state,{tries:0,shown:0,picked:[],solved:false,boards:null,marks:null})}
+function newPuzzle(){Object.assign(state,{dtries:[],tries:0,shown:0,picked:[],solved:false,boards:null,marks:null})}
 
 /* ----- puzzle ----- */
 function npIndex(p){if(!p.board||p.board.type==="grid")return -1;return p.opts.findIndex(o=>/not possible to tell/i.test(o))}
@@ -1713,8 +1825,9 @@ const SKETCH={seats:"Draw _ _ _ _ seats (or a circle with the first person at th
   vault:"Turn everything into the smallest item. Take the same things off both sides.",
   safe:"Start the smallest at 1, then 2, then 3… Shares: numbers in a row, then adjust the last one.",
   count:"Write it all out: dates in a list, or “everyone has 1, then count the extras”.",
+  digits:"Range first (what totals are possible?), then the restricting clue, then test 2–3 arrangements on paper.",
   tense:"Three questions: When? Finished or still going? What order? Cross out options that add details."};
-const EXAM_CASES=["seats","logic","args","rank","liars","grid","court","flaws","tense","vault","safe","count"];
+const EXAM_CASES=["seats","logic","args","rank","liars","grid","court","flaws","tense","vault","safe","count","digits"];
 function examPick(id,level,used){
   const c=caseById(id);
   for(let t=0;t<20;t++){
@@ -1750,7 +1863,7 @@ function examSetupView(){
 }
 let examTimer=null;
 function startExam(){
-  const n=state.exN, level=state.exL, ids=focusOn()&&!focusDone()?EXAM_CASES.filter(id=>FOCUS_IDS.includes(id)):EXAM_CASES.filter(id=>state.exMaths||!["vault","safe","count"].includes(id));
+  const n=state.exN, level=state.exL, ids=focusOn()&&!focusDone()?EXAM_CASES.filter(id=>FOCUS_IDS.includes(id)):EXAM_CASES.filter(id=>state.exMaths||!["vault","safe","count","digits"].includes(id));
   const used=new Set(), qs=[]; let order=shuffle(ids);
   while(qs.length<n){if(!order.length)order=shuffle(ids);const p=examPick(order.shift(),level,used);if(p)qs.push(p)}
   state={view:"exam",exN:n,exL:level,exMaths:state.exMaths,qs,ans:Array(n).fill(null),i:0,end:Date.now()+n*60000,start:Date.now(),skipped:[]};
@@ -1932,7 +2045,9 @@ const FOCUS=[
  {id:"args",lvl:2,need:12,why:"Strengthen and weaken an argument"},
  {id:"court",lvl:1,need:12,why:"Hidden assumptions and best conclusions"},
  {id:"flaws",lvl:1,need:12,why:"Spot the mistake in the reasoning"},
- {id:"quest",lvl:2,need:12,why:"Quest-style sources: fact, opinion, evidence"}
+ {id:"quest",lvl:2,need:12,why:"Quest-style sources: fact, opinion, evidence"},
+ {id:"tense",lvl:2,need:12,why:"“Which other sentence must be true?” with tenses"},
+ {id:"digits",lvl:2,need:10,why:"Pretest-style digit boxes: products, powers, brackets"}
 ];
 const FOCUS_IDS=FOCUS.map(f=>f.id);
 const focusOn=()=>!(progress.focus&&progress.focus.on===false);
@@ -1953,7 +2068,7 @@ function focusHTML(){
   return `<section class="card focus"><div class="row" style="justify-content:space-between"><div><p class="label">🎯 Focus mode · ${met} of ${FOCUS.length} targets hit</p>
     <h3>${focusDone()?"All focus targets hit — every case is unlocked! 🏆":"Logic · Arguments · Truth"}</h3></div>
     ${next?`<button class="btn" data-fgo="${next.id}">▶ Next focus round</button>`:""}</div>
-    <p class="hint">Today: <b>${focusToday()}</b> focus round${focusToday()===1?"":"s"} ${focusToday()>=2?"✅ Great work!":"· aim for 2 a day"}. ${focusDone()?"":"Other cases unlock when all six targets are hit."} Stuck? Use 🦉 Show me how inside each case.</p>
+    <p class="hint">Today: <b>${focusToday()}</b> focus round${focusToday()===1?"":"s"} ${focusToday()>=2?"✅ Great work!":"· aim for 2 a day"}. ${focusDone()?"":"Other cases unlock when all the targets are hit."} Stuck? Use 🦉 Show me how inside each case.</p>
     <ol class="mlist">${FOCUS.map(row).join("")}</ol></section>`;
 }
 function focusGo(id){const c=caseById(id),f=FOCUS.find(x=>x.id===id),ul=unlockedLevel(c);startCase(ci_(id),Math.min(f.lvl,ul),false)}
@@ -2089,12 +2204,23 @@ quest:{title:"How to crack Quest source questions",steps:[
  {say:"Now a cross-reference. Source A says solid fences stop hedgehogs moving. Source E shows hedgehogs were seen in 1 of 14 gardens with solid fences, but 3 of 4 gardens with a gap. Does Source E SUPPORT Source A?",ask:["Yes — fewer hedgehogs were seen where fences had no gap","No"],a:0,no:[null,"Compare: 1 out of 14 vs 3 out of 4."],ok:"Supporting evidence = facts that make the claim more likely."},
  {say:"Last trick: “Which can we be SURE is true?” A source says the school “hopes the pond will attract frogs”. Can we be sure frogs will come?",ask:["No — “hopes” isn't “will”","Yes"],a:0,no:[null,"Hoping doesn't make it certain."],ok:"Only choose what the sources really show. Words like definitely, all, every and will usually go too far. Question first, then the source — you've got it!"}
 ]},
+digits:{title:"How to crack digit-box puzzles",steps:[
+ {say:"These are the Pretest Plus drag-and-drop puzzles. One method cracks them all: RANGE first, then the clue that RESTRICTS it, then TEST 2–3 options on paper.",puzzle:"<b>Puzzle 1:</b> Use 1, 2, 3, 4, 5 once each to make <b>□□□ × □□</b> as LARGE as possible."},
+ {say:"Where should the biggest digits go?",ask:["At the front of BOTH numbers","All in the three-digit number","At the end"],a:0,no:[null,"Then the two-digit number is tiny — that loses a lot.","The end is worth the least!"],ok:"5 and 4 start the two numbers."},
+ {say:"Next biggest digit (3): give it to the number with the SMALLER first digit, to keep them balanced. Which is right?",ask:["43_ and 5_","53_ and 4_"],a:0,no:[null,"Balanced numbers make a bigger product: try 431 × 52 vs 531 × 42 on paper."],ok:"Then 2 goes on 5 (52), and 1 at the end of the long number: 431 × 52 = 22,412."},
+ {say:"Puzzle 2: smallest total of □<sup>□</sup> + □<sup>□</sup> + □<sup>□</sup> with 1–6. Where should the 1 go?",ask:["In a big box, with 6 as its power: 1⁶ = 1","As a power: 6¹ = 6"],a:0,no:[null,"1 to ANY power is just 1 — so it swallows the 6!"],ok:"1⁶ = 1. Brilliant."},
+ {say:"Which is smaller: 2⁵ or 5²?",ask:["5² = 25","2⁵ = 32"],a:0,no:[null,"2⁵ = 2×2×2×2×2 = 32, which is bigger than 25."],ok:"Big number underneath, small power. So 1⁶ + 4³ + 5² = 1 + 64 + 25 = 90."},
+ {say:"Puzzle 3: <b>6( □ + □ ) = 1□ + 4□</b> with 3, 7, 2, 8. What does 6( □ + □ ) mean?",ask:["6 × (□ + □)","6 + □ + □"],a:0,no:[null,"A number next to a bracket means MULTIPLY."],ok:"Multiply!"},
+ {say:"RANGE: 1□ + 4□ is between 10 + 40 = 50 and 19 + 49 = 68. Which totals are in the 6 times table there?",ask:["54, 60, 66","50, 60","48, 54"],a:0,no:[null,"50 isn't in the 6 times table.","48 is below 50."],ok:"Now TEST: 60 needs a bracket sum of 10 — 3 + 7 leaves 2 and 8: 18 + 42 = 60 ✅. The answer is 10."},
+ {say:"Puzzle 4: two calculations where every number is divisible by 3, using 1–9. Which digits can go in the SINGLE boxes?",ask:["Only 3, 6 and 9","Any digit"],a:0,no:[null,"A single digit divisible by 3 can only be 3, 6 or 9!"],ok:"Start with the box with the FEWEST choices. That's the whole trick: 81 ÷ 3 = 27 and 54 ÷ 9 = 6. Now you try — use the tap board to test your ideas!"}
+]},
 tense:{title:"How to crack tense questions",steps:[
  {say:"Read it.",puzzle:"“She has studied Spanish since she was eight.”<br><b>Which other sentence must be true?</b>"},
  {say:"Question 1: WHEN? “has studied … since” means…",ask:["It started in the past and is still going on","It's finished","It's in the future"],a:0,no:[null,"“Has … since” means it hasn't stopped.","Nothing here is in the future."],ok:"Still going on!"},
  {say:"“She'll study Spanish when she turns eight.” Keep or cross out?",ask:["Cross out — it moves it to the future","Keep"],a:0,no:[null,"“She'll” is the future."],ok:"❌"},
  {say:"“She studied Spanish for eight years.” Keep or cross out?",ask:["Cross out — it sounds finished AND adds “eight years”","Keep"],a:0,no:[null,"The sentence never says how many years."],ok:"❌ — that was your Atom mistake!"},
  {say:"So which must be true?",ask:["She still studies Spanish.","She no longer studies Spanish.","She has been studying Spanish for eight years."],a:0,no:[null,"“Has studied … since” means she still does.","Adds a number we don't know."],ok:"✅"},
+ {say:"Careful with the simple present! “Every year, Mrs Grace grows sunflowers in her classroom.” Does that mean she is growing them RIGHT NOW?",ask:["No — “every year” shows a habit: it happens regularly","Yes"],a:0,no:[null,"“Every year” means regularly — maybe not at this moment. That was the Atom trap!"],ok:"So the answer is “She grows sunflowers regularly.” Watch for: every, usually, always, on Mondays."},
  {say:"Question 3: ORDER. “While the dough is rising, Erin will wash the dishes.” “While” means…",ask:["At the same time","After","Before"],a:0,no:[null,"Not after — that was the trap!","Not before."],ok:"Three questions every time: When? Finished? What order?"}
 ]}
 };
@@ -2164,9 +2290,28 @@ function tutor(){
   const ag=document.getElementById("tagain"); if(ag) ag.onclick=()=>startTutor(state.ci);
 }
 
+/* ----- digit-slot board for the Digit Lab ----- */
+function slotsHTML(b){
+  const nBox=b.tokens.reduce((t,x)=>t+(x.includes("_")?1:0),0);
+  if(!state.boards){state.boards=[Array(nBox).fill(-1)];state.marks=[null]}
+  const v=state.boards[0]; let bi=0;
+  const box=(sup)=>{const i=bi++,d=v[i];return `<button class="dbox ${sup?"sup":""} ${d>=0?"filled":""}" data-db="${i}" aria-label="Box ${i+1}: ${d>=0?b.digits[d]:"empty"}">${d>=0?b.digits[d]:""}</button>`};
+  const parts=b.tokens.map(t=>t==="_"?box(false):t==="^_"?box(true):t.endsWith("_")?`<span class="dfix">${esc(t.slice(0,-1))}</span>${box(false)}`:`<span class="dop">${esc(t)}</span>`).join("");
+  const used=v.filter(x=>x>=0), dup=new Set(used).size!==used.length, full=used.length===nBox;
+  let out="";
+  if(dup) out=`<span class="bad">Each digit can only be used once!</span>`;
+  else if(full){try{const r=evalExpr(b.expr,v.map(i=>b.digits[i]));
+    out=b.check?(Math.abs(r)<1e-9?`<span class="good">✅ That works!</span>`:`<span class="bad">❌ The two sides aren't equal yet.</span>`):`Your answer: <b>${Math.round(r*1000)/1000}</b>`}catch(e){out=""}}
+  return `<div class="board"><div class="row" style="justify-content:space-between"><span class="label">Try it here</span><button class="btn ghost mini" data-clr="0">Clear</button></div>
+    <p class="hint">Tap a box to cycle through the digits: ${b.digits.join(", ")}. ${b.check?"It tells you when the calculation works.":"It works out your answer — try different arrangements and compare!"}</p>
+    <div class="dexpr">${parts}</div><p class="dout">${out||"&nbsp;"}</p>
+    ${state.dtries&&state.dtries.length?`<p class="hint">Your tries: ${state.dtries.map(x=>`<b>${x}</b>`).join(" · ")}</p>`:""}</div>`;
+}
+
 /* ----- scratch boards: rows, circles and grids ----- */
 function boardHTML(b,p){
   if(b.type==="grid") return gridHTML(b);
+  if(b.type==="slots") return slotsHTML(b);
   const n=b.names.length, k=npIndex(p);
   if(!state.boards){state.boards=[Array(n).fill(-1)];state.marks=[null]}
   const seatBtn=(a,i,label)=>{const v=state.boards[a][i];
@@ -2211,6 +2356,14 @@ function gridHTML(b){
     <p class="hint">Tap a box to cycle: ${b.values.slice(1).join(" → ")} → empty.${b.countF?" The last column counts the lies (F) in each row.":""}</p>${h}</div>`;
 }
 function wireBoard(b){
+  if(b.type==="slots"){
+    app.querySelectorAll("[data-db]").forEach(btn=>btn.onclick=()=>{const i=+btn.dataset.db,v=state.boards[0];
+      let x=v[i]+1;if(x>=b.digits.length)x=-1;v[i]=x;
+      const used=v.filter(y=>y>=0);if(!b.check&&used.length===v.length&&new Set(used).size===used.length){try{const r=Math.round(evalExpr(b.expr,v.map(k=>b.digits[k]))*1000)/1000;state.dtries=state.dtries||[];if(!state.dtries.includes(r)){state.dtries.push(r);state.dtries=state.dtries.slice(-5)}}catch(e){}}
+      render(true)});
+    app.querySelectorAll("[data-clr]").forEach(btn=>btn.onclick=()=>{state.boards[0]=state.boards[0].map(()=>-1);render(true)});
+    return;
+  }
   if(b.type==="grid"){
     app.querySelectorAll("[data-cell]").forEach(btn=>btn.onclick=()=>{const i=+btn.dataset.cell;state.boards[0][i]=(state.boards[0][i]+1)%b.values.length;render(true)});
     app.querySelectorAll("[data-clr]").forEach(btn=>btn.onclick=()=>{state.boards[0]=state.boards[0].map(()=>0);render(true)});
